@@ -36,10 +36,22 @@ const docProcessOverlay = document.getElementById('docProcessOverlay');
 const docProcessTitle = document.getElementById('docProcessTitle');
 const docProcessSub = document.getElementById('docProcessSub');
 const docProcessFill = document.getElementById('docProcessFill');
+const docProcessBar = document.getElementById('docProcessBar');
+const docProcessIcon = document.getElementById('docProcessIcon');
+const docProcessError = document.getElementById('docProcessError');
+const docProcessActions = document.getElementById('docProcessActions');
+const docProcessRetryBtn = document.getElementById('docProcessRetryBtn');
+const docProcessCloseBtn = document.getElementById('docProcessCloseBtn');
 const docBadge = document.getElementById('docBadge');
 // History + Assessment (inline views)
 const historyListMain = document.getElementById('historyListMain');
 const historyDetailMain = document.getElementById('historyDetailMain');
+const historySearchInput = document.getElementById('historySearchInput');
+const historyStatsStrip = document.getElementById('historyStatsStrip');
+const librarySearchInput = document.getElementById('librarySearchInput');
+const librarySortBtn = document.getElementById('librarySortBtn');
+const librarySortNameBtn = document.getElementById('librarySortNameBtn');
+const shortcutsOverlay = document.getElementById('shortcutsOverlay');
 const assessRunList = document.getElementById('assessRunList');
 const bookmarksMain = document.getElementById('bookmarksMain');
 
@@ -579,16 +591,43 @@ function escapeHtml(str) {
 }
 
 // ── History view ──────────────────────────────────────────────────────
+let _allRuns = [];
+
 async function loadHistoryView() {
   historyListMain.innerHTML = '<p class="history-loading">Loading…</p>';
   historyDetailMain.hidden = true;
   try {
     const res = await fetch('/api/study/runs');
     const data = await res.json();
-    renderRunListMain(data.runs || []);
+    _allRuns = data.runs || [];
+    renderHistoryStats(_allRuns);
+    renderRunListMain(_allRuns);
   } catch {
     historyListMain.innerHTML = '<p class="history-empty">Could not load history.</p>';
   }
+}
+
+function renderHistoryStats(runs) {
+  if (!historyStatsStrip) return;
+  if (!runs.length) { historyStatsStrip.hidden = true; return; }
+  const totalQ = runs.reduce((s, r) => s + (r.total_questions || 0), 0);
+  const flagged = runs.reduce((s, r) => s + (r.disagreement_count || 0), 0);
+  const unanswered = runs.reduce((s, r) => s + (r.unanswered_count || 0), 0);
+  historyStatsStrip.hidden = false;
+  historyStatsStrip.innerHTML = `
+    <div class="history-stat-chip"><div><div class="history-stat-val" style="color:var(--teal)">${runs.length}</div><div class="history-stat-key">Runs</div></div></div>
+    <div class="history-stat-chip"><div><div class="history-stat-val" style="color:var(--violet-hi)">${totalQ}</div><div class="history-stat-key">Questions</div></div></div>
+    <div class="history-stat-chip"><div><div class="history-stat-val" style="color:var(--rose)">${flagged}</div><div class="history-stat-key">Flagged</div></div></div>
+    <div class="history-stat-chip"><div><div class="history-stat-val" style="color:var(--gold)">${unanswered}</div><div class="history-stat-key">Unanswered</div></div></div>
+  `;
+}
+
+if (historySearchInput) {
+  historySearchInput.addEventListener('input', () => {
+    const q = historySearchInput.value.toLowerCase();
+    const filtered = _allRuns.filter(r => r.document_name.toLowerCase().includes(q));
+    renderRunListMain(filtered);
+  });
 }
 
 function renderRunListMain(runs) {
@@ -768,6 +807,8 @@ function renderBookmarksMain(bookmarks) {
 // ── Document Library ──────────────────────────────────────────────────
 let _docLibrary = [];
 
+let _librarySortMode = 'date';
+
 async function loadLibraryView() {
   try {
     const res = await fetch('/api/study/documents');
@@ -775,7 +816,29 @@ async function loadLibraryView() {
     _docLibrary = data.documents || [];
     renderDocGrid(_docLibrary);
     updateDocBadge(_docLibrary.length);
+    setupLibraryControls();
   } catch { /* silent */ }
+}
+
+function setupLibraryControls() {
+  if (librarySearchInput) {
+    librarySearchInput.oninput = () => applyLibraryFilter();
+  }
+  if (librarySortBtn) {
+    librarySortBtn.onclick = () => { _librarySortMode = 'date'; librarySortBtn.classList.add('active'); if(librarySortNameBtn) librarySortNameBtn.classList.remove('active'); applyLibraryFilter(); };
+    librarySortBtn.classList.add('active');
+  }
+  if (librarySortNameBtn) {
+    librarySortNameBtn.onclick = () => { _librarySortMode = 'name'; librarySortNameBtn.classList.add('active'); if(librarySortBtn) librarySortBtn.classList.remove('active'); applyLibraryFilter(); };
+  }
+}
+
+function applyLibraryFilter() {
+  const q = librarySearchInput ? librarySearchInput.value.toLowerCase() : '';
+  let docs = _docLibrary.filter(d => d.name.toLowerCase().includes(q));
+  if (_librarySortMode === 'name') docs = [...docs].sort((a,b) => a.name.localeCompare(b.name));
+  else docs = [...docs].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  renderDocGrid(docs);
 }
 
 function updateDocBadge(n) {
@@ -860,18 +923,28 @@ function setupDocUpload() {
 }
 
 async function processAndStoreDoc(file) {
-  // Show processing overlay
+  // Reset overlay to its "in progress" visual state every run, since a
+  // previous run on this same overlay may have left it in the error state.
   docProcessOverlay.hidden = false;
+  docProcessIcon.textContent = '⚕';
   docProcessTitle.textContent = `Processing "${file.name}"…`;
+  docProcessSub.hidden = false;
+  docProcessBar.hidden = false;
   docProcessSub.textContent = 'Extracting text…';
   docProcessFill.style.width = '10%';
+  docProcessError.hidden = true;
+  docProcessError.textContent = '';
+  docProcessActions.hidden = true;
 
   try {
     // 1. Extract text
     let text = '';
     if (file.type === 'application/pdf') {
-      text = await extractPdfText(file, (pct) => {
-        docProcessSub.textContent = `Reading PDF… ${Math.round(pct)}%`;
+      // extractPdfText reports progress as (currentPage, totalPages), not a
+      // percentage — convert it here.
+      text = await extractPdfText(file, (cur, tot) => {
+        const pct = tot ? (cur / tot) * 100 : 0;
+        docProcessSub.textContent = `Reading PDF… page ${cur}/${tot}`;
         docProcessFill.style.width = `${10 + pct * 0.30}%`;
       });
     } else {
@@ -889,7 +962,10 @@ async function processAndStoreDoc(file) {
         mimeType: file.type || 'text/plain', textContent: text,
       }),
     });
-    const saveData = await saveRes.json();
+    const saveData = await saveRes.json().catch(() => ({}));
+    if (!saveRes.ok) {
+      throw new Error(saveData.error || `Could not save the document (HTTP ${saveRes.status}).`);
+    }
     const docId = saveData.document?.id;
     docProcessFill.style.width = '55%';
 
@@ -920,38 +996,86 @@ async function processAndStoreDoc(file) {
 
   } catch (err) {
     console.error('Doc processing failed:', err);
-    docProcessOverlay.hidden = true;
-    appendMessage('assistant', `Could not process "${file.name}": ${err.message}`);
-    loadLibraryView();
+    // Show the failure inside the overlay itself (with Retry / Close)
+    // instead of silently hiding it and dumping a one-line message into
+    // the chat log — the user is looking at the overlay, not the chat.
+    docProcessIcon.textContent = '⚠';
+    docProcessTitle.textContent = `Could not process "${file.name}"`;
+    docProcessSub.hidden = true;
+    docProcessBar.hidden = true;
+    docProcessError.hidden = false;
+    docProcessError.textContent = err.message || 'Something went wrong while processing this document.';
+    docProcessActions.hidden = false;
+    docProcessRetryBtn.onclick = () => { processAndStoreDoc(file); };
+    docProcessCloseBtn.onclick = () => { docProcessOverlay.hidden = true; loadLibraryView(); };
   }
+}
+
+// Solves one chunk for the document-upload flow, recursively splitting it
+// in half (up to MAX_SPLIT_DEPTH times) if the model's reply comes back
+// truncated — mirrors _solveSubChunks's approach for the chat-attachment flow.
+async function _solveChunkForDoc(chunkText, partLabel, depth = 0) {
+  const MAX_SPLIT_DEPTH = 4;
+  let result = null;
+  for (let attempt = 0; attempt <= BATCH_MAX_RETRIES; attempt++) {
+    try {
+      result = await callAI(chunkText, partLabel);
+    } catch (e) {
+      result = { ok: false, error: e.message };
+    }
+    if (result.ok) break;
+    const isRateLimit = /rate.?limit|too many|429/i.test(result.error || '');
+    if (attempt < BATCH_MAX_RETRIES) {
+      await new Promise((r) => setTimeout(r, isRateLimit ? computeRetryWaitMs(result, attempt) : 3000 * (attempt + 1)));
+      continue;
+    }
+  }
+
+  if (!result.ok) {
+    return [{ chunk: chunkText, reply: null, error: result.error }];
+  }
+
+  if (result.data.truncated) {
+    const units = splitIntoQuestionUnits(chunkText);
+    if (units.length > 1 && depth < MAX_SPLIT_DEPTH) {
+      const mid = Math.ceil(units.length / 2);
+      const [first, second] = await Promise.all([
+        _solveChunkForDoc(units.slice(0, mid).join(' '), partLabel, depth + 1),
+        _solveChunkForDoc(units.slice(mid).join(' '), partLabel, depth + 1),
+      ]);
+      return [...first, ...second];
+    }
+    // Can't split further — keep what we got rather than lose it silently.
+    return [{ chunk: chunkText, reply: result.data.reply, truncated: true }];
+  }
+
+  return [{ chunk: chunkText, reply: result.data.reply, error: null }];
 }
 
 // Run the full solve-all batch for a document text, returns run id
 async function runSolveAllForDoc(text, fileName, onProgress) {
   const chunks = splitIntoChunks(text, BATCH_CHUNK_CHARS);
   const total = chunks.length;
-  const partResults = [];
+  let partResults = [];
   let completed = 0;
 
   for (let i = 0; i < total; i++) {
     onProgress && onProgress((completed / total) * 100);
-    try {
-      const result = await callAI(chunks[i], 'solve');
-      if (result.ok) {
-        partResults.push({ chunk: chunks[i], reply: result.data.reply });
-      } else {
-        partResults.push({ chunk: chunks[i], reply: null, error: result.error });
-      }
-    } catch (e) {
-      partResults.push({ chunk: chunks[i], reply: null, error: e.message });
-    }
+    const partLabel = total > 1 ? `Part ${i + 1}/${total}` : null;
+    const parts = await _solveChunkForDoc(chunks[i], partLabel);
+    partResults.push(...parts);
     completed++;
     onProgress && onProgress((completed / total) * 100);
     if (i < total - 1) await new Promise(r => setTimeout(r, DEFAULT_BATCH_DELAY_MS));
   }
 
   const runItems = buildStudyRunItems(partResults, {});
-  if (!runItems.length) throw new Error('No questions could be extracted from this document.');
+  if (!runItems.length) {
+    // Surface the most useful underlying reason rather than a generic message,
+    // so failures (rate limit, missing API key, etc.) are actionable.
+    const firstError = partResults.find((p) => p.error)?.error;
+    throw new Error(firstError ? `Could not generate questions: ${firstError}` : 'No questions could be extracted from this document.');
+  }
 
   const saveRes = await fetch('/api/study/runs', {
     method: 'POST',
@@ -962,19 +1086,18 @@ async function runSolveAllForDoc(text, fileName, onProgress) {
   return saveData.run?.id || null;
 }
 
-// Low-level AI call (single chunk) used by doc processing
-async function callAI(chunkText, _mode) {
-  const res = await fetch('/api/ai/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages: [], attachments: [{ type: 'text', content: chunkText, name: 'document' }] }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    return { ok: false, error: err.error || `HTTP ${res.status}` };
+// Low-level AI call (single chunk) used by doc processing.
+// Mirrors the request shape _runSolveAllInner uses: a real user message
+// containing the instruction + chunk text, with solveAll:true so the
+// server routes to the fast solve model with the right token budget.
+async function callAI(chunkText, partLabel) {
+  const instruction = `${partLabel ? `Continuing the same document (${partLabel}). ` : ''}For each question below, reply ONLY with:\n[number]. Answer: [letter]\nExplanation: [3-5 sentences — mechanism/concept, why the correct answer fits, and why the most tempting wrong option(s) are incorrect]. No preamble, no extra text.`;
+  const content = `${instruction}\n\n${chunkText}`;
+  const result = await sendChatRequest([{ role: 'user', content }], { solveAll: true });
+  if (!result.ok) {
+    return { ok: false, error: (result.data && result.data.error) || `HTTP ${result.status}`, data: result.data };
   }
-  const data = await res.json();
-  return { ok: true, data };
+  return { ok: true, data: result.data };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1444,6 +1567,20 @@ function appendMessage(role, text, isError, attachmentNames) {
   }
   wrap.appendChild(body);
 
+  if (role === 'assistant' && !isError) {
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'msg-copy-btn';
+    copyBtn.textContent = 'Copy';
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(text).then(() => {
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 1800);
+      });
+    });
+    wrap.appendChild(copyBtn);
+  }
+
   chatLog.appendChild(wrap);
   chatLog.scrollTop = chatLog.scrollHeight;
   return wrap;
@@ -1780,9 +1917,11 @@ function buildStudyRunItems(partResults, verificationMap) {
   verificationMap = verificationMap || {};
   const items = [];
   for (const part of partResults) {
-    if (!part.success) continue;
-    const sourceQs = parseSourceQuestions(part.source || '');
-    const answerBlocks = parseAnswerBlocks(part.answer || '');
+    // Parts are pushed as { chunk, reply } (reply is null on failure) —
+    // not { success, source, answer }. A part "succeeded" iff it has a reply.
+    if (!part.reply) continue;
+    const sourceQs = parseSourceQuestions(part.chunk || '');
+    const answerBlocks = parseAnswerBlocks(part.reply || '');
     const ansMap = {};
     for (const ab of answerBlocks) ansMap[ab.num] = ab;
     for (const sq of sourceQs) {
@@ -2575,3 +2714,40 @@ function renderMd(text) {
     return escapeHtml(text || '');
   }
 }
+
+// ── Global keyboard shortcuts ──────────────────────────────────────────
+let _gPressed = false;
+let _gTimeout = null;
+
+function closeShortcutsOverlay() { if (shortcutsOverlay) shortcutsOverlay.hidden = true; }
+function openShortcutsOverlay()  { if (shortcutsOverlay) shortcutsOverlay.hidden = false; }
+
+if (shortcutsOverlay) {
+  shortcutsOverlay.addEventListener('click', (e) => {
+    if (e.target === shortcutsOverlay) closeShortcutsOverlay();
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  const tag = (e.target && e.target.tagName) || '';
+  const isTyping = tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable;
+
+  if (e.key === 'Escape') { closeShortcutsOverlay(); return; }
+  if (isTyping) return;
+
+  if (e.key === '?') { e.preventDefault(); openShortcutsOverlay(); return; }
+  if (e.key === '/') { e.preventDefault(); switchView('dashboard'); setTimeout(() => input.focus(), 50); return; }
+
+  if (e.key === 'g' || e.key === 'G') {
+    _gPressed = true;
+    clearTimeout(_gTimeout);
+    _gTimeout = setTimeout(() => { _gPressed = false; }, 800);
+    return;
+  }
+  if (_gPressed) {
+    _gPressed = false; clearTimeout(_gTimeout);
+    const map = { d: 'dashboard', l: 'library', h: 'history', a: 'assess', b: 'bookmarks' };
+    const target = map[e.key.toLowerCase()];
+    if (target) { e.preventDefault(); switchView(target); }
+  }
+});
