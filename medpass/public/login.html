@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — MedPass</title>
+
+
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,300;1,400;1,600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/auth.css">
+</head>
+<body>
+<canvas id="bgCanvas" aria-hidden="true"></canvas>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="brand">
+      <div class="brand-mark">MED<span>PASS</span></div>
+      <div class="brand-tag">AI Tutor</div>
+    </div>
+    <div class="vitals">
+      <canvas id="vitalsCanvas"></canvas>
+      <span class="vitals-readout">SESSION&nbsp;MONITOR</span>
+      <span class="vitals-status" id="vitalsStatus">STANDBY</span>
+    </div>
+    <div id="banner" class="banner" role="alert"></div>
+    <form id="loginForm" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email" placeholder="you@school.edu" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="input-row">
+          <input type="password" id="password" name="password" class="has-toggle" autocomplete="current-password" placeholder="••••••••" required>
+          <button type="button" class="toggle-visibility" id="toggleBtn" aria-label="Show password">Show</button>
+        </div>
+      </div>
+      <button type="submit" class="btn-primary" id="submitBtn">Sign in</button>
+    </form>
+    <div class="links-row">
+      <a href="/forgot-password.html">Forgot password?</a>
+      <a href="/signup.html">Create account</a>
+    </div>
+  </div>
+</div>
+<script src="/auth.js"></script>
+<script src="/login-init.js"></script>
+</body>
+</html>
