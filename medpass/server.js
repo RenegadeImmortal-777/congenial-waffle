@@ -1,6 +1,7 @@
 'use strict';
 const http = require('node:http');
 const path = require('node:path');
+const fs = require('node:fs');
 const { readJsonBody, sendJson, sendRedirect, sendStaticFile } = require('./lib/http');
 const { getSessionUser } = require('./lib/sessions');
 const authRoutes = require('./routes/auth');
@@ -15,6 +16,7 @@ const STATIC_FILES = new Set([
   '/signup.html',
   '/forgot-password.html',
   '/reset-password.html',
+  '/share.html',
   '/auth.css',
   '/auth.js',
   '/login-init.js',
@@ -23,22 +25,22 @@ const STATIC_FILES = new Set([
   '/reset-password-init.js',
   '/app.css',
   '/app.js',
+  '/manifest.json',
+  '/sw.js',
 ]);
 
 function setSecurityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; " +
+    "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "font-src 'self' https://fonts.gstatic.com; " +
     "script-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; " +
     "connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com"
   );
 }
 
-// Helper: require a signed-in session or return 401.
-// No verification check — email verification is disabled until SMTP is configured.
 function requireSession(req, res) {
   const session = getSessionUser(req);
   if (!session) { sendJson(res, 401, { error: 'Sign in required.' }); return null; }
@@ -106,6 +108,58 @@ async function handle(req, res) {
       return await aiRoutes.chat(req, res, body, session);
     }
 
+    // ---- Dashboard ----
+    if (method === 'GET' && pathname === '/api/study/dashboard') {
+      const session = requireSession(req, res); if (!session) return;
+      return studyRoutes.getDashboard(req, res, session);
+    }
+    if (method === 'GET' && pathname === '/api/study/activity') {
+      const session = requireSession(req, res); if (!session) return;
+      return studyRoutes.getActivityHeatmap(req, res, session);
+    }
+
+    // ---- Analytics ----
+    if (method === 'GET' && pathname === '/api/study/analytics') {
+      const session = requireSession(req, res); if (!session) return;
+      return studyRoutes.getAnalytics(req, res, session);
+    }
+
+    // ---- Search ----
+    if (method === 'GET' && pathname === '/api/study/search') {
+      const session = requireSession(req, res); if (!session) return;
+      return studyRoutes.search(req, res, session, url);
+    }
+
+    // ---- XP ----
+    if (pathname === '/api/study/xp') {
+      const session = requireSession(req, res); if (!session) return;
+      if (method === 'GET') return studyRoutes.getXP(req, res, session);
+      if (method === 'POST') {
+        const body = await readJsonBody(req);
+        return studyRoutes.awardXP(req, res, body, session);
+      }
+    }
+
+    // ---- Goals / Planner ----
+    if (pathname === '/api/study/goals') {
+      const session = requireSession(req, res); if (!session) return;
+      if (method === 'GET') return studyRoutes.listGoals(req, res, session);
+      if (method === 'POST') {
+        const body = await readJsonBody(req);
+        return studyRoutes.createGoal(req, res, body, session);
+      }
+    }
+    const goalMatch = pathname.match(/^\/api\/study\/goals\/(\d+)$/);
+    if (goalMatch) {
+      const session = requireSession(req, res); if (!session) return;
+      const id = Number(goalMatch[1]);
+      if (method === 'PATCH') {
+        const body = await readJsonBody(req);
+        return studyRoutes.updateGoal(req, res, id, body, session);
+      }
+      if (method === 'DELETE') return studyRoutes.deleteGoal(req, res, id, session);
+    }
+
     // ---- Documents ----
     if (pathname === '/api/study/documents') {
       const session = requireSession(req, res); if (!session) return;
@@ -125,11 +179,35 @@ async function handle(req, res) {
         return studyRoutes.patchDocument(req, res, id, body, session);
       }
     }
+    const docShareMatch = pathname.match(/^\/api\/study\/documents\/(\d+)\/share$/);
+    if (docShareMatch) {
+      const session = requireSession(req, res); if (!session) return;
+      const id = Number(docShareMatch[1]);
+      if (method === 'POST') {
+        const body = await readJsonBody(req);
+        return studyRoutes.shareDocument(req, res, id, body, session);
+      }
+    }
+
+    // ---- Public share endpoint ----
+    const shareMatch = pathname.match(/^\/api\/share\/([a-f0-9]{32})$/);
+    if (shareMatch && method === 'GET') {
+      return studyRoutes.getSharedDocument(req, res, shareMatch[1]);
+    }
 
     // ---- Flashcards ----
     if (pathname === '/api/study/flashcards') {
       const session = requireSession(req, res); if (!session) return;
       if (method === 'GET') return studyRoutes.listFlashcards(req, res, session);
+    }
+    const fcReviewMatch = pathname.match(/^\/api\/study\/flashcards\/(\d+)\/review$/);
+    if (fcReviewMatch) {
+      const session = requireSession(req, res); if (!session) return;
+      const cardId = Number(fcReviewMatch[1]);
+      if (method === 'POST') {
+        const body = await readJsonBody(req);
+        return studyRoutes.reviewFlashcard(req, res, cardId, body, session);
+      }
     }
     const fcMatch = pathname.match(/^\/api\/study\/flashcards\/(\d+)$/);
     if (fcMatch) {
@@ -140,12 +218,6 @@ async function handle(req, res) {
         const body = await readJsonBody(req);
         return studyRoutes.saveFlashcards(req, res, docId, body, session);
       }
-    }
-
-    // ---- Dashboard ----
-    if (method === 'GET' && pathname === '/api/study/dashboard') {
-      const session = requireSession(req, res); if (!session) return;
-      return studyRoutes.getDashboard(req, res, session);
     }
 
     // ---- Study run history ----

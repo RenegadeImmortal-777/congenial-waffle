@@ -83,6 +83,9 @@ const flashNextBtn = document.getElementById('flashNextBtn');
 const flashProgressFill = document.getElementById('flashProgressFill');
 const flashUploadBtn = document.getElementById('flashUploadBtn');
 const flashBadge = document.getElementById('flashBadge');
+const flashSrsButtons = document.getElementById('flashSrsButtons');
+const flashDueBadge = document.getElementById('flashDueBadge');
+const flashHint = document.getElementById('flashHint');
 // Companion panel
 const companionOverlay = document.getElementById('companionOverlay');
 const companionPanel = document.getElementById('companionPanel');
@@ -102,6 +105,9 @@ const VIEWS = {
   assessSetup:  document.getElementById('viewAssessSetup'),
   assessQuiz:   document.getElementById('viewAssessQuiz'),
   assessResult: document.getElementById('viewAssessResult'),
+  analytics:    document.getElementById('viewAnalytics'),
+  search:       document.getElementById('viewSearch'),
+  planner:      document.getElementById('viewPlanner'),
 };
 
 let currentView = 'dashboard';
@@ -162,7 +168,7 @@ function switchView(name) {
   if (!VIEWS[name]) return;
   currentView = name;
   Object.entries(VIEWS).forEach(([k, el]) => {
-    el.classList.toggle('active', k === name);
+    if (el) el.classList.toggle('active', k === name);
   });
   document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === name);
@@ -176,6 +182,9 @@ function switchView(name) {
   if (name === 'bookmarks') loadBookmarksView();
   if (name === 'library') loadLibraryView();
   if (name === 'flashcards') loadFlashcardsView();
+  if (name === 'analytics') loadAnalyticsView();
+  if (name === 'search') initSearchView();
+  if (name === 'planner') loadPlannerView();
 }
 
 document.querySelectorAll('.nav-item[data-view]').forEach(btn => {
@@ -896,20 +905,108 @@ function renderBookmarksMain(bookmarks) {
 }
 
 // ── Dashboard View ────────────────────────────────────────────────────
+// ── Heatmap renderer ──────────────────────────────────────────────────
+function renderHeatmap(activity) {
+  const grid = document.getElementById('heatmapGrid');
+  const monthsBar = document.getElementById('heatmapMonths');
+  if (!grid) return;
+
+  const WEEKS = 52;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Find the Sunday that starts 52 complete weeks ago
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - today.getDay() - (WEEKS - 1) * 7);
+
+  // Build all 364 day cells
+  const cells = [];
+  const monthPositions = []; // { label, col }
+  let lastMonth = -1;
+
+  for (let w = 0; w < WEEKS; w++) {
+    for (let d = 0; d < 7; d++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + w * 7 + d);
+      if (date > today) continue;
+
+      const iso = date.toISOString().slice(0, 10);
+      const count = activity[iso] || 0;
+      const level = count === 0 ? 0 : count === 1 ? 1 : count <= 3 ? 2 : count <= 5 ? 3 : 4;
+      const month = date.getMonth();
+      if (month !== lastMonth) {
+        monthPositions.push({ label: date.toLocaleString('default', { month: 'short' }), col: w });
+        lastMonth = month;
+      }
+      const label = date.toLocaleDateString('default', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+      cells.push({ iso, count, level, label, w, d });
+    }
+  }
+
+  // Render month labels
+  if (monthsBar) {
+    monthsBar.innerHTML = '';
+    monthPositions.forEach(({ label, col }) => {
+      const el = document.createElement('span');
+      el.textContent = label;
+      el.style.gridColumn = col + 1;
+      monthsBar.appendChild(el);
+    });
+  }
+
+  // Render day cells (CSS grid: 52 cols × 7 rows)
+  grid.innerHTML = '';
+  const tip = document.getElementById('heatmapTip');
+  cells.forEach(({ iso, count, level, label, w, d }) => {
+    const cell = document.createElement('span');
+    cell.className = `hm-cell hm-${level}`;
+    cell.style.gridColumn = w + 1;
+    cell.style.gridRow = d + 1;
+    cell.dataset.date = iso;
+    cell.setAttribute('title', count ? `${label}: ${count} session${count !== 1 ? 's' : ''}` : label);
+    cell.addEventListener('mouseenter', (e) => {
+      if (!tip) return;
+      tip.hidden = false;
+      tip.textContent = count
+        ? `${label} — ${count} study session${count !== 1 ? 's' : ''}`
+        : `${label} — no activity`;
+    });
+    cell.addEventListener('mouseleave', () => { if (tip) tip.hidden = true; });
+    grid.appendChild(cell);
+  });
+}
+
 async function loadDashboardView() {
   try {
-    const res = await fetch('/api/study/dashboard');
-    if (!res.ok) return;
-    const { stats, recentRuns, recentDocs } = await res.json();
+    const [dashRes, activityRes] = await Promise.all([
+      fetch('/api/study/dashboard'),
+      fetch('/api/study/activity'),
+    ]);
+    if (!dashRes.ok) return;
+    const { stats, recentRuns, recentDocs } = await dashRes.json();
+    const { activity } = activityRes.ok ? await activityRes.json() : { activity: {} };
+    renderHeatmap(activity);
     // Update stat cards
     const statRunsEl = document.getElementById('statRuns');
     const statDocsEl = document.getElementById('statDocs');
     const statFlashEl = document.getElementById('statFlash');
     const statScoreEl = document.getElementById('statScore');
+    const statStreakEl = document.getElementById('statStreak');
+    const statDueEl = document.getElementById('statDue');
     if (statRunsEl) statRunsEl.textContent = stats.totalRuns;
     if (statDocsEl) statDocsEl.textContent = stats.totalDocuments;
     if (statFlashEl) statFlashEl.textContent = stats.totalFlashcards;
     if (statScoreEl) statScoreEl.textContent = stats.totalQuestions > 0 ? stats.avgScore + '%' : '—';
+    if (statStreakEl) statStreakEl.textContent = stats.streak || 0;
+    if (statDueEl) statDueEl.textContent = stats.dueCards || 0;
+    const statXPEl = document.getElementById('statXP');
+    if (statXPEl) statXPEl.textContent = (stats.totalXP || 0) + ' XP';
+    const dueCard = document.getElementById('dashStatDue');
+    if (dueCard) dueCard.onclick = () => switchView('flashcards');
+    const xpCard = document.getElementById('dashStatXP');
+    if (xpCard) xpCard.onclick = () => switchView('analytics');
+    // Update XP bar in sidebar
+    if (stats.xpLevel) renderXPBar(stats.xpLevel);
     // Recent docs
     if (dashRecentDocs) {
       if (!recentDocs.length) {
@@ -963,6 +1060,8 @@ if (dashQaUpload) dashQaUpload.onclick = () => { switchView('library'); setTimeo
 if (dashQaFlash) dashQaFlash.onclick = () => switchView('flashcards');
 if (dashQaAssess) dashQaAssess.onclick = () => switchView('assess');
 if (dashQaChat) dashQaChat.onclick = () => openCompanion();
+const dashQaPlanner = document.getElementById('dashQaPlanner');
+if (dashQaPlanner) dashQaPlanner.onclick = () => switchView('planner');
 
 // ── MedPass Companion panel ───────────────────────────────────────────
 function openCompanion() {
@@ -999,9 +1098,24 @@ let _flashcards = [];
 let _flashIdx = 0;
 let _flashFlipped = false;
 
+// Review session state
+let _reviewMode = false;
+let _reviewStats = { 0: 0, 1: 0, 2: 0, 3: 0 }; // rating → count
+let _reviewTotal = 0;
+
+// Extra DOM refs for review mode
+const flashReviewDueBtn   = document.getElementById('flashReviewDueBtn');
+const flashReviewDueBadgeCount = document.getElementById('flashReviewDueBadgeCount');
+const flashReviewBanner   = document.getElementById('flashReviewBanner');
+const flashReviewBannerText = document.getElementById('flashReviewBannerText');
+const flashReviewExitBtn  = document.getElementById('flashReviewExitBtn');
+const flashReviewSummary  = document.getElementById('flashReviewSummary');
+
 async function loadFlashcardsView() {
+  exitReviewMode(false);
   if (flashEmpty) flashEmpty.hidden = true;
   if (flashDeckWrap) flashDeckWrap.hidden = true;
+  if (flashReviewSummary) flashReviewSummary.hidden = true;
   if (flashCounter) flashCounter.textContent = 'Loading…';
   try {
     const res = await fetch('/api/study/flashcards');
@@ -1014,9 +1128,113 @@ async function loadFlashcardsView() {
       flashDocSelect.innerHTML = '<option value="">All documents</option>' +
         [...docsSeen.entries()].map(([id, name]) => `<option value="${id}">${escapeHtml(name)}</option>`).join('');
     }
+    // Update "Review Due" button
+    updateReviewDueButton();
     renderFlashcards(_flashcards);
   } catch {
     if (flashEmpty) { flashEmpty.hidden = false; flashEmpty.querySelector && (flashEmpty.querySelector('p').textContent = 'Could not load flashcards.'); }
+  }
+}
+
+function getDueCards() {
+  const today = new Date().toISOString().slice(0, 10);
+  return _flashcards.filter(c => (c.srs_due || today) <= today);
+}
+
+function updateReviewDueButton() {
+  if (!flashReviewDueBtn) return;
+  const due = getDueCards();
+  if (due.length > 0) {
+    flashReviewDueBtn.hidden = false;
+    if (flashReviewDueBadgeCount) flashReviewDueBadgeCount.textContent = due.length;
+  } else {
+    flashReviewDueBtn.hidden = true;
+  }
+}
+
+function startReviewSession() {
+  const dueCards = getDueCards();
+  if (!dueCards.length) return;
+  _reviewMode = true;
+  _reviewStats = { 0: 0, 1: 0, 2: 0, 3: 0 };
+  _reviewTotal = dueCards.length;
+  // Show banner
+  if (flashReviewBanner) flashReviewBanner.hidden = false;
+  if (flashReviewBannerText) flashReviewBannerText.textContent = `Reviewing ${_reviewTotal} due card${_reviewTotal !== 1 ? 's' : ''}…`;
+  // Hide summary if visible
+  if (flashReviewSummary) flashReviewSummary.hidden = true;
+  // Load only due cards
+  _flashcards = dueCards;
+  renderFlashcards(_flashcards);
+}
+
+function exitReviewMode(reload = true) {
+  _reviewMode = false;
+  _reviewStats = { 0: 0, 1: 0, 2: 0, 3: 0 };
+  _reviewTotal = 0;
+  if (flashReviewBanner) flashReviewBanner.hidden = true;
+  if (flashReviewSummary) flashReviewSummary.hidden = true;
+  if (reload) loadFlashcardsView();
+}
+
+function showReviewSummary() {
+  if (!flashReviewSummary) return;
+  if (flashDeckWrap) flashDeckWrap.hidden = true;
+  flashReviewSummary.hidden = false;
+
+  const total = _reviewTotal;
+  const reviewed = Object.values(_reviewStats).reduce((s, v) => s + v, 0);
+  const good = (_reviewStats[2] || 0) + (_reviewStats[3] || 0);
+  const pct = total > 0 ? Math.round((good / total) * 100) : 0;
+
+  // Update subtitle
+  const subtitle = document.getElementById('reviewSummarySubtitle');
+  if (subtitle) subtitle.textContent = `You reviewed ${reviewed} card${reviewed !== 1 ? 's' : ''}. ${good} recalled correctly.`;
+
+  // Animate ring
+  const ring = document.getElementById('reviewRingFill');
+  const pctLabel = document.getElementById('reviewRingPct');
+  if (ring) {
+    const circum = 326.7;
+    const offset = circum - (pct / 100) * circum;
+    setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
+    ring.style.stroke = pct >= 80 ? '#059669' : pct >= 50 ? '#f59e0b' : '#ef4444';
+  }
+  if (pctLabel) pctLabel.textContent = pct + '%';
+
+  // Breakdown
+  const breakdown = document.getElementById('reviewSummaryBreakdown');
+  if (breakdown) {
+    const labels = ['Again', 'Hard', 'Good', 'Easy'];
+    const colors = ['#dc2626', '#c2410c', '#15803d', '#1d4ed8'];
+    breakdown.innerHTML = labels.map((label, i) =>
+      `<div class="review-breakdown-item">
+        <span class="review-breakdown-dot" style="background:${colors[i]}"></span>
+        <span class="review-breakdown-label">${label}</span>
+        <span class="review-breakdown-val">${_reviewStats[i] || 0}</span>
+      </div>`
+    ).join('');
+  }
+
+  // Next due hint
+  const nextEl = document.getElementById('reviewSummaryNext');
+  if (nextEl) {
+    const again = _reviewStats[0] || 0;
+    if (again > 0) {
+      nextEl.textContent = `${again} card${again !== 1 ? 's' : ''} marked "Again" — they'll appear again tomorrow.`;
+    } else {
+      nextEl.textContent = 'Great work! No cards need immediate re-review.';
+    }
+  }
+
+  // Wire action buttons
+  const reviewAgainBtn = document.getElementById('reviewSummaryReviewAgainBtn');
+  const allCardsBtn    = document.getElementById('reviewSummaryAllCardsBtn');
+  if (reviewAgainBtn) {
+    reviewAgainBtn.onclick = () => { exitReviewMode(true); setTimeout(startReviewSession, 300); };
+  }
+  if (allCardsBtn) {
+    allCardsBtn.onclick = () => exitReviewMode(true);
   }
 }
 
@@ -1046,12 +1264,33 @@ function showFlashcard() {
   if (flashProgressFill) flashProgressFill.style.width = `${((_flashIdx + 1) / _flashcards.length) * 100}%`;
   if (flashPrevBtn) flashPrevBtn.disabled = _flashIdx === 0;
   if (flashNextBtn) flashNextBtn.disabled = _flashIdx === _flashcards.length - 1;
+  // SRS: hide rating buttons until flipped; show due badge
+  if (flashSrsButtons) flashSrsButtons.hidden = true;
+  if (flashHint) flashHint.hidden = false;
+  if (flashDueBadge) {
+    const today = new Date().toISOString().slice(0, 10);
+    const due = card.srs_due || today;
+    const isDue = due <= today;
+    if (isDue && card.srs_reps > 0) {
+      flashDueBadge.hidden = false;
+      flashDueBadge.textContent = '⏰ Due for review';
+    } else if (card.srs_reps === 0) {
+      flashDueBadge.hidden = false;
+      flashDueBadge.textContent = '✦ New card';
+    } else {
+      flashDueBadge.hidden = false;
+      flashDueBadge.textContent = `Next review: ${due}`;
+    }
+  }
 }
 
 if (flashCard) {
   flashCard.addEventListener('click', () => {
     _flashFlipped = !_flashFlipped;
     flashCard.classList.toggle('flipped', _flashFlipped);
+    // Show SRS rating buttons after flipping to see the answer
+    if (flashSrsButtons) flashSrsButtons.hidden = !_flashFlipped;
+    if (flashHint) flashHint.hidden = _flashFlipped;
   });
   flashCard.addEventListener('keydown', (e) => {
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flashCard.click(); }
@@ -1061,6 +1300,61 @@ if (flashCard) {
 }
 if (flashPrevBtn) flashPrevBtn.onclick = () => { if (_flashIdx > 0) { _flashIdx--; showFlashcard(); } };
 if (flashNextBtn) flashNextBtn.onclick = () => { if (_flashIdx < _flashcards.length - 1) { _flashIdx++; showFlashcard(); } };
+
+// SRS rating button handlers
+if (flashSrsButtons) {
+  flashSrsButtons.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.srs-btn');
+    if (!btn) return;
+    const rating = Number(btn.dataset.rating);
+    const card = _flashcards[_flashIdx];
+    if (!card) return;
+    // Disable all rating buttons during save
+    flashSrsButtons.querySelectorAll('.srs-btn').forEach(b => { b.disabled = true; });
+    try {
+      const res = await fetch(`/api/study/flashcards/${card.id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating }),
+      });
+      if (res.ok) {
+        const result = await res.json();
+        card.srs_due = result.dueDate;
+        card.srs_interval = result.interval;
+        card.srs_ease = result.ease;
+        card.srs_reps = result.reps;
+      }
+    } catch { /* silent */ }
+    flashSrsButtons.querySelectorAll('.srs-btn').forEach(b => { b.disabled = false; });
+
+    // Track stats in review session
+    if (_reviewMode) {
+      _reviewStats[rating] = (_reviewStats[rating] || 0) + 1;
+      const reviewed = Object.values(_reviewStats).reduce((s, v) => s + v, 0);
+      if (flashReviewBannerText) {
+        flashReviewBannerText.textContent = `${reviewed} / ${_reviewTotal} reviewed…`;
+      }
+    }
+
+    // Advance to next card or end session
+    if (_flashIdx < _flashcards.length - 1) {
+      _flashIdx++;
+      showFlashcard();
+    } else {
+      // End of deck
+      if (_reviewMode) {
+        showReviewSummary();
+      } else {
+        if (flashSrsButtons) flashSrsButtons.hidden = true;
+        if (flashHint) { flashHint.hidden = false; flashHint.textContent = '✓ End of deck — all reviewed!'; }
+      }
+    }
+  });
+}
+
+// Wire Review Due button and Exit Review button
+if (flashReviewDueBtn) flashReviewDueBtn.onclick = startReviewSession;
+if (flashReviewExitBtn) flashReviewExitBtn.onclick = () => exitReviewMode(true);
 if (flashShuffleBtn) flashShuffleBtn.onclick = () => {
   for (let i = _flashcards.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -1143,12 +1437,15 @@ function renderDocGrid(docs) {
     const statusClass = d.status === 'done' ? 'doc-status-done' : d.status === 'error' ? 'doc-status-error' : 'doc-status-processing';
     const statusLabel = d.status === 'done' ? 'Ready' : d.status === 'error' ? 'Error' : 'Processing…';
     const canAct = d.status === 'done';
+    const tags = (d.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+    const tagsHtml = tags.map(t => `<span class="doc-tag-chip">${escapeHtml(t)}</span>`).join('');
     return `
       <div class="doc-card" data-id="${d.id}" data-run="${d.run_id || ''}">
         <button class="doc-card-delete" data-id="${d.id}" title="Delete">✕</button>
         <div class="doc-card-icon">${icon}</div>
         <div class="doc-card-name">${escapeHtml(d.name)}</div>
         <div class="doc-card-meta">${formatRunDate(d.created_at)}</div>
+        ${tagsHtml ? `<div class="doc-card-tags">${tagsHtml}</div>` : ''}
         <div class="doc-card-status ${statusClass}">
           <span class="doc-status-dot"></span>
           <span>${statusLabel}</span>
@@ -1156,6 +1453,10 @@ function renderDocGrid(docs) {
         <div class="doc-card-actions">
           <button class="btn-doc teal btn-doc-chat" data-id="${d.id}" ${canAct ? '' : 'disabled'}>Ask questions</button>
           ${d.run_id ? `<button class="btn-doc btn-doc-assess" data-run="${d.run_id}">Self-assess</button>` : ''}
+        </div>
+        <div class="doc-card-footer">
+          <button class="btn-ghost btn-xs btn-doc-tags" data-id="${d.id}" title="Edit tags">🏷 Tags</button>
+          ${canAct ? `<button class="btn-ghost btn-xs btn-doc-share" data-id="${d.id}" data-token="${d.share_token || ''}" title="${d.share_token ? 'Copy share link' : 'Generate share link'}">🔗 ${d.share_token ? 'Shared' : 'Share'}</button>` : ''}
         </div>
       </div>
     `;
@@ -1174,7 +1475,6 @@ function renderDocGrid(docs) {
     btn.addEventListener('click', async () => {
       const doc = _docLibrary.find(d => String(d.id) === String(btn.dataset.id));
       if (!doc) return;
-      // Open companion and seed it with this doc context
       openCompanion();
       setTimeout(() => {
         appendMessage('assistant', `Loaded *${doc.name}* — ask me anything about it, or I can generate test questions from it.`);
@@ -1188,6 +1488,54 @@ function renderDocGrid(docs) {
       const res = await fetch(`/api/study/runs/${runId}`);
       const data = await res.json();
       openSelfAssess(data.run.id, data.run.items || []);
+    });
+  });
+
+  docGrid.querySelectorAll('.btn-doc-tags').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const doc = _docLibrary.find(d => String(d.id) === String(btn.dataset.id));
+      const current = doc ? (doc.tags || '') : '';
+      const newTags = prompt('Enter tags (comma-separated, e.g. cardiology, physiology):', current);
+      if (newTags === null) return;
+      await fetch(`/api/study/documents/${btn.dataset.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: newTags, status: doc ? doc.status : undefined }),
+      });
+      loadLibraryView();
+    });
+  });
+
+  docGrid.querySelectorAll('.btn-doc-share').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const existingToken = btn.dataset.token;
+      if (existingToken) {
+        const shareUrl = `${window.location.origin}/share.html?t=${existingToken}`;
+        await navigator.clipboard.writeText(shareUrl).catch(() => {});
+        const orig = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+        return;
+      }
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/study/documents/${btn.dataset.id}/share`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (data.token) {
+          const shareUrl = `${window.location.origin}/share.html?t=${data.token}`;
+          await navigator.clipboard.writeText(shareUrl).catch(() => {});
+          btn.textContent = '✓ Link copied!';
+          btn.dataset.token = data.token;
+          setTimeout(() => loadLibraryView(), 1500);
+        }
+      } catch { btn.textContent = '🔗 Share'; }
+      btn.disabled = false;
     });
   });
 }
@@ -1828,6 +2176,8 @@ function showQuizScreen() {
 
   renderAllQuestions();
   updateAnsweredCount();
+  // Start timer if timed mode enabled
+  startQuizTimer();
 }
 
 function renderAllQuestions() {
@@ -1995,6 +2345,28 @@ function showAssessResults() {
     assessResultReview.innerHTML = '<div class="review-head">Review: ' + wrongItems.length + ' to revisit</div>' + reviewHtml;
   } else {
     assessResultReview.innerHTML = '<div class="review-head" style="color:var(--teal)">Perfect score - nothing to review!</div>';
+  }
+
+  // Stop timer if running
+  stopQuizTimer();
+
+  // Show XP earned
+  const xpEarned = correct * 10 + (correct === total && total > 0 ? 20 : 0);
+  const xpEarnedEl = document.getElementById('assessXpEarned');
+  const xpEarnedText = document.getElementById('assessXpEarnedText');
+  if (xpEarned > 0 && xpEarnedEl && xpEarnedText) {
+    xpEarnedText.textContent = '+' + xpEarned + ' XP earned!';
+    xpEarnedEl.hidden = false;
+    // Refresh XP bar
+    loadXP();
+  } else if (xpEarnedEl) {
+    xpEarnedEl.hidden = true;
+  }
+
+  // Wire export button
+  const exportBtn = document.getElementById('assessResultExportBtn');
+  if (exportBtn) {
+    exportBtn.onclick = () => exportAssessResultsCSV(assessItems, assessAnswers);
   }
 }
 
@@ -3259,8 +3631,749 @@ document.addEventListener('keydown', (e) => {
   }
   if (_gPressed) {
     _gPressed = false; clearTimeout(_gTimeout);
-    const map = { d: 'dashboard', l: 'library', f: 'flashcards', h: 'history', a: 'assess', b: 'bookmarks' };
+    const map = { d: 'dashboard', l: 'library', f: 'flashcards', h: 'history', a: 'assess', b: 'bookmarks', n: 'analytics', s: 'search', p: 'planner' };
     const target = map[e.key.toLowerCase()];
     if (target) { e.preventDefault(); switchView(target); }
   }
 });
+
+// ── Service Worker (PWA offline) ──────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ── ⏱ TIMED EXAM MODE ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+let quizTimerInterval = null;
+let quizTimerSecsLeft = 0;
+let quizTimerTotalSecs = 0;
+
+(function initTimedMode() {
+  const toggle = document.getElementById('timedModeToggle');
+  const options = document.getElementById('timedModeOptions');
+  const timeRow = document.getElementById('timedTimeRow');
+  if (!toggle || !options) return;
+
+  toggle.addEventListener('change', () => {
+    options.style.display = toggle.checked ? 'block' : 'none';
+  });
+
+  if (timeRow) {
+    timeRow.querySelectorAll('.timed-time-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        timeRow.querySelectorAll('.timed-time-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  }
+})();
+
+function getTimedModeSecs() {
+  const toggle = document.getElementById('timedModeToggle');
+  if (!toggle || !toggle.checked) return 0;
+  const active = document.querySelector('.timed-time-btn.active');
+  return active ? Number(active.dataset.secs) : 60;
+}
+
+function startQuizTimer() {
+  stopQuizTimer();
+  const secs = getTimedModeSecs();
+  const wrap = document.getElementById('quizTimerWrap');
+  if (!wrap) return;
+
+  if (!secs) { wrap.hidden = true; return; }
+
+  quizTimerTotalSecs = secs;
+  quizTimerSecsLeft = secs;
+  wrap.hidden = false;
+  updateTimerDisplay();
+
+  quizTimerInterval = setInterval(() => {
+    quizTimerSecsLeft--;
+    updateTimerDisplay();
+    if (quizTimerSecsLeft <= 0) {
+      stopQuizTimer();
+      // Auto-submit when time is up
+      if (assessSubmitBtn) {
+        assessSubmitBtn.click();
+      }
+    }
+  }, 1000);
+}
+
+function stopQuizTimer() {
+  if (quizTimerInterval) { clearInterval(quizTimerInterval); quizTimerInterval = null; }
+  const wrap = document.getElementById('quizTimerWrap');
+  if (wrap) wrap.hidden = true;
+}
+
+function updateTimerDisplay() {
+  const displayEl = document.getElementById('quizTimerDisplay');
+  const ringEl = document.getElementById('timerRingFill');
+  if (!displayEl) return;
+
+  const m = Math.floor(quizTimerSecsLeft / 60);
+  const s = quizTimerSecsLeft % 60;
+  displayEl.textContent = m + ':' + String(s).padStart(2, '0');
+
+  const pct = quizTimerTotalSecs > 0 ? quizTimerSecsLeft / quizTimerTotalSecs : 1;
+  if (ringEl) {
+    const circumference = 113;
+    ringEl.style.strokeDashoffset = circumference * (1 - pct);
+    // Color: green → amber → red
+    ringEl.style.stroke = pct > 0.5 ? 'var(--teal)' : pct > 0.25 ? '#f59e0b' : 'var(--red)';
+  }
+  if (displayEl) {
+    displayEl.style.color = quizTimerSecsLeft <= 10 ? 'var(--red)' : '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ── 🏆 XP SYSTEM ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+async function loadXP() {
+  try {
+    const res = await fetch('/api/study/xp');
+    if (!res.ok) return;
+    const data = await res.json();
+    renderXPBar(data);
+  } catch { /* silent */ }
+}
+
+function renderXPBar(data) {
+  const levelLabel = document.getElementById('xpLevelLabel');
+  const totalLabel = document.getElementById('xpTotalLabel');
+  const barFill = document.getElementById('xpBarFill');
+  if (levelLabel) levelLabel.textContent = 'Lv ' + (data.level || 1);
+  if (totalLabel) totalLabel.textContent = (data.xp || 0) + ' XP';
+  if (barFill) barFill.style.width = Math.min(100, data.progress || 0) + '%';
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ── 📈 ANALYTICS VIEW ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+let analyticsLoaded = false;
+
+async function loadAnalyticsView() {
+  const loading = document.getElementById('analyticsLoading');
+  const content = document.getElementById('analyticsContent');
+  if (!loading || !content) return;
+
+  loading.hidden = false;
+  content.hidden = true;
+
+  try {
+    const [analyticsRes, xpRes, dashRes] = await Promise.all([
+      fetch('/api/study/analytics'),
+      fetch('/api/study/xp'),
+      fetch('/api/study/dashboard'),
+    ]);
+
+    const analytics = analyticsRes.ok ? await analyticsRes.json() : {};
+    const xpData = xpRes.ok ? await xpRes.json() : { level: 1, xp: 0, progress: 0, nextAt: 100 };
+    const { stats } = dashRes.ok ? await dashRes.json() : { stats: {} };
+
+    // XP card
+    const xpLevelEl = document.getElementById('analyticsXpLevel');
+    const xpBarFillEl = document.getElementById('analyticsXpBarFill');
+    const xpSubEl = document.getElementById('analyticsXpSub');
+    if (xpLevelEl) xpLevelEl.textContent = 'Level ' + xpData.level;
+    if (xpBarFillEl) xpBarFillEl.style.width = Math.min(100, xpData.progress || 0) + '%';
+    if (xpSubEl) xpSubEl.textContent = xpData.xp + ' XP total — ' + xpData.progress + '% to Level ' + (xpData.level + 1);
+    renderXPBar(xpData);
+
+    // Summary card
+    const summaryGrid = document.getElementById('analyticsSummaryGrid');
+    if (summaryGrid && stats) {
+      summaryGrid.innerHTML = [
+        { label: 'Total Sessions', val: stats.totalRuns || 0 },
+        { label: 'Documents', val: stats.totalDocuments || 0 },
+        { label: 'Flashcards', val: stats.totalFlashcards || 0 },
+        { label: 'Avg Score', val: (stats.avgScore || 0) + '%' },
+        { label: 'Day Streak', val: '🔥 ' + (stats.streak || 0) },
+        { label: 'Total XP', val: '🏆 ' + (stats.totalXP || 0) },
+      ].map(s =>
+        '<div class="analytics-summary-item">' +
+        '<div class="analytics-summary-val">' + s.val + '</div>' +
+        '<div class="analytics-summary-key">' + s.label + '</div>' +
+        '</div>'
+      ).join('');
+    }
+
+    // Score trend
+    renderScoreTrend(analytics.scoreTrend || []);
+
+    // By-document
+    renderDocBar(analytics.byDocument || []);
+
+    // Weekly activity
+    renderWeeklyActivity(analytics.weeklyActivity || []);
+
+    content.hidden = false;
+  } catch (e) {
+    console.error('Analytics load error:', e);
+  } finally {
+    if (loading) loading.hidden = true;
+  }
+}
+
+function renderScoreTrend(data) {
+  const svg = document.getElementById('scoreTrendChart');
+  const empty = document.getElementById('scoreTrendEmpty');
+  if (!svg) return;
+
+  if (!data.length) {
+    svg.hidden = true;
+    if (empty) empty.hidden = false;
+    return;
+  }
+  svg.hidden = false;
+  if (empty) empty.hidden = true;
+  svg.innerHTML = '';
+
+  const W = 700, H = 200, PAD = 40;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const scores = data.map(d => d.score);
+  const maxY = 100, minY = 0;
+  const n = scores.length;
+
+  // Grid lines
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = PAD + (H - 2 * PAD) * (1 - v / maxY);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', PAD); line.setAttribute('x2', W - PAD / 2);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('stroke', 'var(--border)'); line.setAttribute('stroke-width', '0.5');
+    svg.appendChild(line);
+    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    label.setAttribute('x', PAD - 6); label.setAttribute('y', y + 4);
+    label.setAttribute('text-anchor', 'end');
+    label.setAttribute('font-size', '9'); label.setAttribute('fill', 'var(--text-muted)');
+    label.textContent = v + '%';
+    svg.appendChild(label);
+  });
+
+  if (n < 2) {
+    const x = W / 2;
+    const y = PAD + (H - 2 * PAD) * (1 - scores[0] / maxY);
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', '5');
+    dot.setAttribute('fill', 'var(--violet)');
+    svg.appendChild(dot);
+    return;
+  }
+
+  const xStep = (W - PAD * 1.5) / (n - 1);
+  const points = scores.map((s, i) => {
+    const x = PAD + i * xStep;
+    const y = PAD + (H - 2 * PAD) * (1 - s / maxY);
+    return [x, y];
+  });
+
+  // Area fill
+  const areaPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  const areaD = 'M' + points[0][0] + ',' + (H - PAD) +
+    ' L' + points.map(p => p[0] + ',' + p[1]).join(' L') +
+    ' L' + points[n - 1][0] + ',' + (H - PAD) + ' Z';
+  areaPath.setAttribute('d', areaD);
+  areaPath.setAttribute('fill', 'url(#trendGrad)');
+  areaPath.setAttribute('opacity', '0.15');
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+  grad.setAttribute('id', 'trendGrad'); grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+  grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+  const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', 'var(--violet)');
+  const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+  s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', 'var(--violet)'); s2.setAttribute('stop-opacity', '0');
+  grad.appendChild(s1); grad.appendChild(s2); defs.appendChild(grad);
+  svg.appendChild(defs); svg.appendChild(areaPath);
+
+  // Line
+  const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  linePath.setAttribute('points', points.map(p => p.join(',')).join(' '));
+  linePath.setAttribute('fill', 'none');
+  linePath.setAttribute('stroke', 'var(--violet)');
+  linePath.setAttribute('stroke-width', '2');
+  linePath.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(linePath);
+
+  // Dots + labels
+  points.forEach(([x, y], i) => {
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', '4');
+    dot.setAttribute('fill', 'var(--violet)'); dot.setAttribute('stroke', 'var(--bg)');
+    dot.setAttribute('stroke-width', '2');
+    svg.appendChild(dot);
+    // Score label for last point
+    if (i === n - 1 || n <= 6) {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x); t.setAttribute('y', y - 8);
+      t.setAttribute('text-anchor', 'middle'); t.setAttribute('font-size', '9');
+      t.setAttribute('fill', 'var(--text-muted)');
+      t.textContent = scores[i] + '%';
+      svg.appendChild(t);
+    }
+  });
+}
+
+function renderDocBar(data) {
+  const wrap = document.getElementById('docBarChart');
+  const empty = document.getElementById('docBarEmpty');
+  if (!wrap) return;
+
+  if (!data.length) {
+    wrap.innerHTML = '';
+    if (empty) empty.hidden = false;
+    return;
+  }
+  if (empty) empty.hidden = true;
+
+  wrap.innerHTML = data.map(d => {
+    const pct = d.score;
+    const col = pct >= 80 ? 'var(--teal)' : pct >= 60 ? 'var(--violet)' : pct >= 40 ? '#f59e0b' : 'var(--red)';
+    return '<div class="doc-bar-row">' +
+      '<div class="doc-bar-label" title="' + escapeHtml(d.name) + '">' + escapeHtml(d.name) + '</div>' +
+      '<div class="doc-bar-track">' +
+        '<div class="doc-bar-fill" style="width:' + pct + '%;background:' + col + '"></div>' +
+      '</div>' +
+      '<div class="doc-bar-pct" style="color:' + col + '">' + pct + '%</div>' +
+      '<div class="doc-bar-runs">' + d.runs + ' run' + (d.runs !== 1 ? 's' : '') + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderWeeklyActivity(data) {
+  const wrap = document.getElementById('weeklyActivityChart');
+  if (!wrap) return;
+
+  if (!data.length) {
+    wrap.innerHTML = '<div class="analytics-chart-empty">No weekly activity data yet.</div>';
+    return;
+  }
+
+  const max = Math.max(...data.map(w => w.sessions || 0), 1);
+
+  wrap.innerHTML = '<div class="weekly-bars">' +
+    data.map(w => {
+      const pct = Math.round(((w.sessions || 0) / max) * 100);
+      const label = (w.week || '').replace(/^\d{4}-W/, 'W');
+      return '<div class="weekly-bar-col">' +
+        '<div class="weekly-bar-track">' +
+          '<div class="weekly-bar-fill" style="height:' + pct + '%"></div>' +
+        '</div>' +
+        '<div class="weekly-bar-label">' + label + '</div>' +
+        '<div class="weekly-bar-val">' + (w.sessions || 0) + '</div>' +
+      '</div>';
+    }).join('') +
+  '</div>';
+}
+
+// Wire analytics refresh btn
+const analyticsRefreshBtn = document.getElementById('analyticsRefreshBtn');
+if (analyticsRefreshBtn) analyticsRefreshBtn.onclick = () => {
+  analyticsLoaded = false;
+  loadAnalyticsView();
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// ── 🔍 GLOBAL SEARCH VIEW ────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+let searchDebounceTimer = null;
+
+function initSearchView() {
+  const input = document.getElementById('searchBarInput');
+  if (!input || input._searchWired) return;
+  input._searchWired = true;
+
+  const doSearch = () => {
+    const q = input.value.trim();
+    if (q.length < 2) {
+      document.getElementById('searchHint').hidden = false;
+      document.getElementById('searchSections').hidden = true;
+      document.getElementById('searchLoading').hidden = true;
+      document.getElementById('searchEmpty').hidden = true;
+      return;
+    }
+    runSearch(q);
+  };
+
+  input.addEventListener('input', () => {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(doSearch, 350);
+  });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { clearTimeout(searchDebounceTimer); doSearch(); }
+  });
+
+  const btn = document.getElementById('searchBarBtn');
+  if (btn) btn.onclick = () => { clearTimeout(searchDebounceTimer); doSearch(); };
+
+  // Focus the input
+  setTimeout(() => input.focus(), 50);
+}
+
+async function runSearch(query) {
+  const hintEl = document.getElementById('searchHint');
+  const loadingEl = document.getElementById('searchLoading');
+  const sectionsEl = document.getElementById('searchSections');
+  const emptyEl = document.getElementById('searchEmpty');
+
+  if (hintEl) hintEl.hidden = true;
+  if (loadingEl) loadingEl.hidden = false;
+  if (sectionsEl) sectionsEl.hidden = true;
+
+  try {
+    const res = await fetch('/api/study/search?q=' + encodeURIComponent(query));
+    const data = res.ok ? await res.json() : { documents: [], flashcards: [], bookmarks: [] };
+    renderSearchResults(data, query);
+  } catch {
+    renderSearchResults({ documents: [], flashcards: [], bookmarks: [] }, query);
+  } finally {
+    if (loadingEl) loadingEl.hidden = true;
+  }
+}
+
+function highlightMatch(text, query) {
+  if (!query || !text) return escapeHtml(text || '');
+  const escaped = escapeHtml(text);
+  const escapedQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(escapedQ, 'gi'), m => '<mark>' + m + '</mark>');
+}
+
+function renderSearchResults(data, query) {
+  const sectionsEl = document.getElementById('searchSections');
+  const emptyEl = document.getElementById('searchEmpty');
+  const docsSection = document.getElementById('searchSectionDocs');
+  const cardsSection = document.getElementById('searchSectionCards');
+  const bookmarksSection = document.getElementById('searchSectionBookmarks');
+  const docItems = document.getElementById('searchDocItems');
+  const cardItems = document.getElementById('searchCardItems');
+  const bookmarkItems = document.getElementById('searchBookmarkItems');
+
+  const total = (data.documents || []).length + (data.flashcards || []).length + (data.bookmarks || []).length;
+
+  if (!total) {
+    if (sectionsEl) sectionsEl.hidden = true;
+    if (emptyEl) emptyEl.hidden = false;
+    return;
+  }
+  if (emptyEl) emptyEl.hidden = true;
+  if (sectionsEl) sectionsEl.hidden = false;
+
+  // Documents
+  if (docsSection && docItems) {
+    if (data.documents && data.documents.length) {
+      docsSection.hidden = false;
+      docItems.innerHTML = data.documents.map(d =>
+        '<div class="search-result-item" style="cursor:pointer" data-view="library">' +
+        '<div class="search-result-icon">📁</div>' +
+        '<div class="search-result-body">' +
+          '<div class="search-result-title">' + highlightMatch(d.name, query) + '</div>' +
+          (d.doc_type ? '<div class="search-result-sub">Type: ' + d.doc_type + '</div>' : '') +
+        '</div>' +
+        '</div>'
+      ).join('');
+      docItems.querySelectorAll('.search-result-item').forEach(el => {
+        el.onclick = () => switchView('library');
+      });
+    } else {
+      docsSection.hidden = true;
+    }
+  }
+
+  // Flashcards
+  if (cardsSection && cardItems) {
+    if (data.flashcards && data.flashcards.length) {
+      cardsSection.hidden = false;
+      cardItems.innerHTML = data.flashcards.map(c =>
+        '<div class="search-result-item" style="cursor:pointer" data-view="flashcards">' +
+        '<div class="search-result-icon">🃏</div>' +
+        '<div class="search-result-body">' +
+          '<div class="search-result-title">' + highlightMatch(c.front, query) + '</div>' +
+          '<div class="search-result-sub">' + highlightMatch(c.back, query) + ' — ' + escapeHtml(c.document_name || '') + '</div>' +
+        '</div>' +
+        '</div>'
+      ).join('');
+      cardItems.querySelectorAll('.search-result-item').forEach(el => {
+        el.onclick = () => switchView('flashcards');
+      });
+    } else {
+      cardsSection.hidden = true;
+    }
+  }
+
+  // Bookmarks
+  if (bookmarksSection && bookmarkItems) {
+    if (data.bookmarks && data.bookmarks.length) {
+      bookmarksSection.hidden = false;
+      bookmarkItems.innerHTML = data.bookmarks.map(b =>
+        '<div class="search-result-item" style="cursor:pointer">' +
+        '<div class="search-result-icon">🔖</div>' +
+        '<div class="search-result-body">' +
+          '<div class="search-result-title">' + highlightMatch(b.stem, query) + '</div>' +
+          (b.correct_letter ? '<div class="search-result-sub">Answer: ' + b.correct_letter.toUpperCase() + '</div>' : '') +
+        '</div>' +
+        '</div>'
+      ).join('');
+      bookmarkItems.querySelectorAll('.search-result-item').forEach(el => {
+        el.onclick = () => switchView('bookmarks');
+      });
+    } else {
+      bookmarksSection.hidden = true;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ── 📅 STUDY PLANNER VIEW ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+let plannerGoals = [];
+
+async function loadPlannerView() {
+  // Set default date to today
+  const dateInput = document.getElementById('plannerTargetDate');
+  if (dateInput && !dateInput.value) {
+    dateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
+  try {
+    const res = await fetch('/api/study/goals');
+    if (!res.ok) return;
+    const { goals } = await res.json();
+    plannerGoals = goals || [];
+    renderPlanner();
+  } catch { /* silent */ }
+}
+
+function renderPlanner() {
+  const today = new Date().toISOString().slice(0, 10);
+  const todayGoals = plannerGoals.filter(g => !g.completed && g.target_date === today);
+  const upcomingGoals = plannerGoals.filter(g => !g.completed && g.target_date > today);
+  const completedGoals = plannerGoals.filter(g => g.completed);
+
+  const todayList = document.getElementById('plannerTodayList');
+  const upcomingList = document.getElementById('plannerUpcomingList');
+  const completedList = document.getElementById('plannerCompletedList');
+  const completedSection = document.getElementById('plannerCompletedSection');
+
+  if (todayList) {
+    todayList.innerHTML = todayGoals.length
+      ? todayGoals.map(g => renderGoalItem(g)).join('')
+      : '<div class="planner-empty">No goals scheduled for today.</div>';
+    bindGoalActions(todayList);
+  }
+
+  if (upcomingList) {
+    upcomingList.innerHTML = upcomingGoals.length
+      ? upcomingGoals.map(g => renderGoalItem(g)).join('')
+      : '<div class="planner-empty">No upcoming goals.</div>';
+    bindGoalActions(upcomingList);
+  }
+
+  if (completedList && completedSection) {
+    if (completedGoals.length) {
+      completedSection.hidden = false;
+      completedList.innerHTML = completedGoals.map(g => renderGoalItem(g)).join('');
+      bindGoalActions(completedList);
+    } else {
+      completedSection.hidden = true;
+    }
+  }
+}
+
+function renderGoalItem(g) {
+  const typeEmoji = { sessions: '✦', cards: '🃏', score: '📊' };
+  const typeLabel = { sessions: 'sessions', cards: 'cards reviewed', score: '% target score' };
+  return '<div class="planner-goal-item ' + (g.completed ? 'planner-goal-done' : '') + '" data-id="' + g.id + '">' +
+    '<label class="planner-goal-check-label">' +
+      '<input type="checkbox" class="planner-goal-check" data-id="' + g.id + '"' + (g.completed ? ' checked' : '') + '>' +
+    '</label>' +
+    '<div class="planner-goal-body">' +
+      '<div class="planner-goal-title">' + escapeHtml(g.title) + '</div>' +
+      '<div class="planner-goal-meta">' +
+        (typeEmoji[g.goal_type] || '🎯') + ' ' +
+        escapeHtml(String(g.target_value)) + ' ' + (typeLabel[g.goal_type] || g.goal_type) +
+        ' · Due ' + escapeHtml(g.target_date) +
+      '</div>' +
+    '</div>' +
+    '<button type="button" class="planner-goal-delete btn-ghost btn-xs" data-id="' + g.id + '" title="Delete">✕</button>' +
+  '</div>';
+}
+
+function bindGoalActions(container) {
+  container.querySelectorAll('.planner-goal-check').forEach(cb => {
+    cb.addEventListener('change', async () => {
+      const id = Number(cb.dataset.id);
+      await patchGoal(id, { completed: cb.checked });
+      await loadPlannerView();
+      if (cb.checked) loadXP();
+    });
+  });
+  container.querySelectorAll('.planner-goal-delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = Number(btn.dataset.id);
+      await fetch('/api/study/goals/' + id, { method: 'DELETE' });
+      await loadPlannerView();
+    });
+  });
+}
+
+async function patchGoal(id, data) {
+  try {
+    await fetch('/api/study/goals/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch { /* silent */ }
+}
+
+// Wire planner add button
+const plannerAddBtn = document.getElementById('plannerAddBtn');
+const plannerFormError = document.getElementById('plannerFormError');
+
+if (plannerAddBtn) {
+  plannerAddBtn.addEventListener('click', async () => {
+    const title = (document.getElementById('plannerTitle') || {}).value || '';
+    const goalType = (document.getElementById('plannerGoalType') || {}).value || 'sessions';
+    const targetValue = Number((document.getElementById('plannerTargetValue') || {}).value) || 1;
+    const targetDate = (document.getElementById('plannerTargetDate') || {}).value || '';
+
+    if (!title.trim()) {
+      if (plannerFormError) { plannerFormError.textContent = 'Please enter a goal title.'; plannerFormError.hidden = false; }
+      return;
+    }
+    if (!targetDate) {
+      if (plannerFormError) { plannerFormError.textContent = 'Please select a target date.'; plannerFormError.hidden = false; }
+      return;
+    }
+    if (plannerFormError) plannerFormError.hidden = true;
+
+    try {
+      const res = await fetch('/api/study/goals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim(), goalType, targetValue, targetDate }),
+      });
+      if (!res.ok) throw new Error('Failed to create goal');
+      // Clear form
+      const titleInput = document.getElementById('plannerTitle');
+      if (titleInput) titleInput.value = '';
+      await loadPlannerView();
+    } catch (e) {
+      if (plannerFormError) { plannerFormError.textContent = 'Could not add goal. Try again.'; plannerFormError.hidden = false; }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// ── 📤 EXPORT CSV ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+function downloadCSV(filename, rows) {
+  const csv = rows.map(row =>
+    row.map(cell => {
+      const s = String(cell == null ? '' : cell).replace(/"/g, '""');
+      return /[,"\n\r]/.test(s) ? '"' + s + '"' : s;
+    }).join(',')
+  ).join('\r\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportHistoryCSV() {
+  try {
+    const res = await fetch('/api/study/runs');
+    if (!res.ok) return;
+    const { runs } = await res.json();
+    const rows = [
+      ['Date', 'Document', 'Total Questions', 'Answered', 'Score %', 'Note'],
+      ...runs.map(r => [
+        r.created_at ? r.created_at.slice(0, 10) : '',
+        r.document_name,
+        r.total_questions,
+        r.answered_count,
+        r.total_questions > 0 ? Math.round((r.answered_count / r.total_questions) * 100) : 0,
+        r.note || '',
+      ]),
+    ];
+    downloadCSV('medpass_history.csv', rows);
+  } catch { /* silent */ }
+}
+
+async function exportFlashcardsCSV() {
+  try {
+    const res = await fetch('/api/study/flashcards');
+    if (!res.ok) return;
+    const { flashcards } = await res.json();
+    const rows = [
+      ['Front', 'Back', 'Document', 'Due Date', 'Interval (days)', 'Reps'],
+      ...flashcards.map(c => [
+        c.front, c.back, c.document_name || '', c.srs_due || '', c.srs_interval || 1, c.srs_reps || 0,
+      ]),
+    ];
+    downloadCSV('medpass_flashcards.csv', rows);
+  } catch { /* silent */ }
+}
+
+async function exportBookmarksCSV() {
+  try {
+    const res = await fetch('/api/study/bookmarks');
+    if (!res.ok) return;
+    const { bookmarks } = await res.json();
+    const rows = [
+      ['Date', 'Question', 'Correct Answer', 'Explanation'],
+      ...bookmarks.map(b => [
+        b.created_at ? b.created_at.slice(0, 10) : '',
+        b.stem,
+        b.correct_letter ? b.correct_letter.toUpperCase() : '',
+        b.explanation || '',
+      ]),
+    ];
+    downloadCSV('medpass_bookmarks.csv', rows);
+  } catch { /* silent */ }
+}
+
+function exportAssessResultsCSV(items, answers) {
+  const rows = [
+    ['Question #', 'Stem', 'Your Answer', 'Correct Answer', 'Result'],
+    ...items.map((item, idx) => {
+      const userAns = answers[idx] || '';
+      const correct = item.correctLetter || '';
+      const result = !userAns ? 'Unanswered' : (userAns.toLowerCase() === correct.toLowerCase() ? 'Correct' : 'Incorrect');
+      return [item.num, item.stem || '', userAns.toUpperCase(), correct.toUpperCase(), result];
+    }),
+  ];
+  downloadCSV('medpass_quiz_results.csv', rows);
+}
+
+// Wire export buttons
+const historyExportBtn = document.getElementById('historyExportBtn');
+if (historyExportBtn) historyExportBtn.onclick = exportHistoryCSV;
+
+const flashExportBtn = document.getElementById('flashExportBtn');
+if (flashExportBtn) flashExportBtn.onclick = exportFlashcardsCSV;
+
+const bookmarksExportBtn = document.getElementById('bookmarksExportBtn');
+if (bookmarksExportBtn) bookmarksExportBtn.onclick = exportBookmarksCSV;
+
+// ═══════════════════════════════════════════════════════════════════════
+// ── 🚀 INIT ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+// Load XP on startup
+loadXP();

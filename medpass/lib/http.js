@@ -86,7 +86,7 @@ function sendStaticFile(res, rootDir, relPath, statusCode = 200) {
     const ext = path.extname(filePath);
     res.writeHead(statusCode, {
       'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
-      'Cache-Control': ext === '.html' ? 'no-store' : 'public, max-age=300',
+      'Cache-Control': 'no-store',
     });
     res.end(data);
   });

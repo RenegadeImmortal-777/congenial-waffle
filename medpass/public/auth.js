@@ -42,7 +42,7 @@ function initBgCanvas() {
     const dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#00d4ff';
+    ctx.fillStyle = '#006fd6';
 
     for (const p of points) {
       p.y -= p.speed * dt;
@@ -150,10 +150,10 @@ const Vitals = (function () {
     const mid = h / 2;
 
     const colors = {
-      idle: '#00d4ff',
-      sending: '#00d4ff',
-      success: '#00e676',
-      error: '#ff3b5c',
+      idle: '#006fd6',
+      sending: '#0284c7',
+      success: '#059669',
+      error: '#ef4444',
     };
     ctx.strokeStyle = colors[state] || '#00d4ff';
     ctx.lineWidth = 1.5;
