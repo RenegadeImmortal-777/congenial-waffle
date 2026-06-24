@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedPass Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,300;1,400;1,600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <nav class="sidebar" id="sidebar">
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <span class="brand-mark">MED<span>PASS</span></span>
+    </div>
+
+    <!-- Nav items -->
+    <div class="sidebar-nav">
+      <button class="nav-item active" id="navDashboard" data-view="dashboard">
+        <span class="nav-icon">⊞</span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" id="navLibrary" data-view="library">
+        <span class="nav-icon">📁</span>
+        <span class="nav-label">Documents</span>
+        <span class="nav-badge" id="docBadge" hidden>0</span>
+      </button>
+      <button class="nav-item" id="navHistory" data-view="history">
+        <span class="nav-icon">◷</span>
+        <span class="nav-label">History</span>
+      </button>
+      <button class="nav-item" id="navAssess" data-view="assess">
+        <span class="nav-icon">✦</span>
+        <span class="nav-label">Assessment</span>
+      </button>
+      <button class="nav-item" id="navBookmarks" data-view="bookmarks">
+        <span class="nav-icon">🔖</span>
+        <span class="nav-label">Bookmarks</span>
+      </button>
+    </div>
+
+    <!-- Bottom: user + logout -->
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebarAvatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="sidebar-email" id="userEmail">…</span>
+        </div>
+      </div>
+      <button class="nav-item nav-logout" id="logoutBtn" type="button">
+        <span class="nav-icon">⎋</span>
+        <span class="nav-label">Sign out</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile sidebar toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle menu">☰</button>
+
+  <!-- ── Main content area ────────────────────────────────────────────── -->
+  <div class="main-area">
+
+    <!-- ══ VIEW: Dashboard (chat) ══ -->
+    <div class="view active" id="viewDashboard">
+      <div class="view-header">
+        <h1 class="view-title">Dashboard</h1>
+        <div class="view-header-actions">
+          <span class="batch-status-inline" id="batchStatusInline" hidden></span>
+        </div>
+      </div>
+
+      <main class="chat-wrap">
+        <div class="chat-log" id="chatLog">
+          <div class="empty-state" id="emptyState">
+            <span class="eyebrow">MedPass Tutor</span>
+            Ask about any topic, paste a question, or upload a document from the <strong>Documents</strong> tab to generate questions &amp; explanations.
+            <br><em style="font-size:12px;opacity:0.55;margin-top:8px;display:block">Study aid only — not medical advice.</em>
+          </div>
+        </div>
+
+        <!-- PDF extraction progress -->
+        <div class="upload-progress-wrap" id="uploadProgressWrap" hidden>
+          <div class="upload-progress-row">
+            <span class="upload-progress-label" id="uploadProgressLabel">Reading PDF…</span>
+          </div>
+          <div class="upload-progress-bar">
+            <div class="upload-progress-fill" id="uploadProgressFill"></div>
+          </div>
+        </div>
+
+        <!-- Batch progress -->
+        <div class="batch-status" id="batchStatus" hidden>
+          <div class="batch-status-row">
+            <span id="batchStatusText">Processing…</span>
+            <button type="button" class="btn-ghost btn-sm" id="batchCancelBtn">Cancel</button>
+          </div>
+          <div class="batch-progress">
+            <div class="batch-progress-fill" id="batchProgressFill"></div>
+          </div>
+        </div>
+
+        <!-- Composer -->
+        <input type="file" id="fileInput" multiple
+          accept=".txt,.md,application/pdf,image/png,image/jpeg,image/webp,image/gif" hidden>
+
+        <form class="composer" id="composer">
+          <button type="button" class="btn-attach" id="attachBtn" aria-label="Attach files">📎</button>
+          <div class="composer-main">
+            <div class="attachments-row" id="attachmentsRow" hidden></div>
+            <textarea id="messageInput" placeholder="Ask the tutor something, or attach a document…" rows="1"></textarea>
+          </div>
+          <button type="button" class="btn-solve" id="solveAllBtn" hidden>Solve All &amp; Download</button>
+          <label class="verify-toggle-label" id="verifyToggleLabel" hidden>
+            <input type="checkbox" id="verifyToggle" checked>
+            Double-check
+          </label>
+          <button type="submit" id="sendBtn">Send</button>
+        </form>
+      </main>
+    </div>
+
+    <!-- ══ VIEW: Documents / Library ══ -->
+    <div class="view" id="viewLibrary">
+      <div class="view-header">
+        <h1 class="view-title">Documents</h1>
+        <button class="btn-primary-sm" id="uploadDocBtn">+ Upload Document</button>
+        <input type="file" id="docFileInput" multiple
+          accept=".txt,.md,application/pdf" hidden>
+      </div>
+
+      <div class="library-content" id="libraryContent">
+        <div class="library-empty" id="libraryEmpty">
+          <div class="library-empty-icon">📄</div>
+          <p>No documents yet.</p>
+          <p class="library-empty-sub">Upload PDFs or text files — MedPass will extract questions and generate answers with explanations automatically.</p>
+          <button class="btn-primary-sm" id="uploadDocBtn2">Upload your first document</button>
+        </div>
+        <div class="doc-grid" id="docGrid" hidden></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: History ══ -->
+    <div class="view" id="viewHistory">
+      <div class="view-header">
+        <h1 class="view-title">History</h1>
+      </div>
+      <div class="history-content">
+        <div id="historyListMain" class="history-list-main"></div>
+        <div id="historyDetailMain" class="history-detail-main" hidden></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Assessment ══ -->
+    <div class="view" id="viewAssess">
+      <div class="view-header">
+        <h1 class="view-title">Assessment</h1>
+      </div>
+      <div class="assess-picker" id="assessPicker">
+        <div class="assess-gen-banner">
+          <div class="assess-gen-banner-text">
+            <div class="assess-gen-banner-title">Generate a quiz with AI</div>
+            <div class="assess-gen-banner-sub">Pick a topic, set a question count, choose Bloom's taxonomy levels — get a full board-style MCQ quiz instantly.</div>
+          </div>
+          <button type="button" class="btn-assess-gen" id="btnOpenAssessGen">Generate Quiz →</button>
+        </div>
+        <div class="assess-divider"><span>or practise from a study run</span></div>
+        <div id="assessRunList" class="assess-run-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Bookmarks ══ -->
+    <div class="view" id="viewBookmarks">
+      <div class="view-header">
+        <h1 class="view-title">Bookmarks</h1>
+      </div>
+      <div id="bookmarksMain" class="history-list-main"></div>
+    </div>
+
+    <!-- ══ VIEW: Assessment Setup ══ -->
+    <div class="view" id="viewAssessSetup">
+      <div class="assess-page-inner">
+        <div class="assess-header">
+          <button type="button" class="btn-ghost btn-sm" id="assessCloseBtn">← Back</button>
+          <span class="assess-title" id="assessSetupTitle">Configure your quiz</span>
+        </div>
+
+        <div class="setup-section">
+          <div class="setup-section-label">Number of questions</div>
+          <div class="assess-count-row" id="assessCountRow">
+            <button class="assess-count-btn" data-n="5">5</button>
+            <button class="assess-count-btn active" data-n="10">10</button>
+            <button class="assess-count-btn" data-n="15">15</button>
+            <button class="assess-count-btn" data-n="20">20</button>
+            <button class="assess-count-btn" data-n="30">30</button>
+          </div>
+          <div class="assess-count-custom-wrap">
+            <input type="number" id="assessCountCustom" class="assess-count-custom" placeholder="or type a custom number…" min="1" max="60">
+          </div>
+        </div>
+
+        <div class="setup-section">
+          <div class="setup-section-label">Bloom's taxonomy levels</div>
+          <div class="setup-section-sub">Select one or more cognitive levels for your questions</div>
+          <div class="bloom-grid" id="assessBloomGrid">
+            <label class="bloom-chip bloom-remember">
+              <input type="checkbox" value="remember" checked>
+              <span class="bloom-chip-icon">🧠</span>
+              <span class="bloom-chip-name">Remember</span>
+              <span class="bloom-chip-desc">Recall facts &amp; definitions</span>
+            </label>
+            <label class="bloom-chip bloom-understand">
+              <input type="checkbox" value="understand" checked>
+              <span class="bloom-chip-icon">💡</span>
+              <span class="bloom-chip-name">Understand</span>
+              <span class="bloom-chip-desc">Explain mechanisms</span>
+            </label>
+            <label class="bloom-chip bloom-apply">
+              <input type="checkbox" value="apply" checked>
+              <span class="bloom-chip-icon">⚙️</span>
+              <span class="bloom-chip-name">Apply</span>
+              <span class="bloom-chip-desc">Clinical scenarios</span>
+            </label>
+            <label class="bloom-chip bloom-analyze">
+              <input type="checkbox" value="analyze">
+              <span class="bloom-chip-icon">🔬</span>
+              <span class="bloom-chip-name">Analyse</span>
+              <span class="bloom-chip-desc">Compare &amp; differentiate</span>
+            </label>
+            <label class="bloom-chip bloom-evaluate">
+              <input type="checkbox" value="evaluate">
+              <span class="bloom-chip-icon">⚖️</span>
+              <span class="bloom-chip-name">Evaluate</span>
+              <span class="bloom-chip-desc">Critique management</span>
+            </label>
+            <label class="bloom-chip bloom-create">
+              <input type="checkbox" value="create">
+              <span class="bloom-chip-icon">✨</span>
+              <span class="bloom-chip-name">Create</span>
+              <span class="bloom-chip-desc">Devise care plans</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="assess-gen-status hidden" id="assessGenStatus">
+          <div class="assess-gen-bar-wrap">
+            <div class="assess-gen-bar" id="assessGenBar" style="width:0%"></div>
+          </div>
+          <div class="assess-gen-label" id="assessGenLabel">Generating questions…</div>
+        </div>
+
+        <button type="button" class="btn-assess-start" id="assessStartBtn">
+          Generate Quiz →
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Assessment Quiz ══ -->
+    <div class="view" id="viewAssessQuiz">
+      <div class="assess-quiz-header">
+        <div class="assess-quiz-header-top">
+          <div>
+            <div class="assess-title" id="assessQuizTitle">Quiz</div>
+            <div class="assess-quiz-bloom-tag" id="assessQuizBloom"></div>
+          </div>
+          <button type="button" class="btn-ghost btn-sm" id="assessQuizCloseBtn">← Back</button>
+        </div>
+        <div class="assess-progress-track">
+          <div class="assess-progress-fill" id="assessProgressFill" style="width:0%"></div>
+        </div>
+        <div class="assess-quiz-meta">
+          <span id="assessAnsweredCount">0 / 0 answered</span>
+          <button type="button" class="btn-assess-submit" id="assessSubmitBtn" disabled>Submit Quiz →</button>
+        </div>
+      </div>
+      <div class="assess-quiz-scroll" id="assessQuizScroll"></div>
+    </div>
+
+    <!-- ══ VIEW: Assessment Results ══ -->
+    <div class="view" id="viewAssessResult">
+      <div class="assess-page-inner">
+        <div class="assess-result-header">
+          <span class="assess-title">Results</span>
+          <button type="button" class="btn-ghost btn-sm" id="assessResultCloseBtn">← Assessment</button>
+        </div>
+
+        <div class="assess-score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 110 110">
+            <circle class="ring-bg" cx="55" cy="55" r="50" fill="none" stroke-width="8"/>
+            <circle class="ring-fill" id="ringFill" cx="55" cy="55" r="50" fill="none" stroke-width="8"
+              stroke-dasharray="314" stroke-dashoffset="314"
+              transform="rotate(-90 55 55)"/>
+          </svg>
+          <div class="score-ring-label" id="assessScorePct">0%</div>
+        </div>
+
+        <div class="assess-result-stats" id="assessResultStats"></div>
+        <div class="assess-bloom-breakdown" id="assessBloomBreakdown"></div>
+        <div class="assess-result-review" id="assessResultReview"></div>
+
+        <div class="assess-result-actions">
+          <button type="button" class="btn-assess-retry" id="assessRetryBtn">Retry Quiz</button>
+          <button type="button" class="btn-ghost btn-sm" id="assessResultCloseBtn2">← Assessment</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.main-area -->
+
+  <!-- ── Self-assessment modal (REMOVED - now uses page views above) ── -->
+
+  <!-- ── Document processing overlay ───────────────────────────────── -->
+  <div class="doc-process-overlay" id="docProcessOverlay" hidden>
+    <div class="doc-process-card">
+      <div class="doc-process-icon">⚕</div>
+      <div class="doc-process-title" id="docProcessTitle">Processing document…</div>
+      <div class="doc-process-sub" id="docProcessSub">Extracting questions…</div>
+      <div class="doc-process-bar"><div class="doc-process-fill" id="docProcessFill"></div></div>
+    </div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
