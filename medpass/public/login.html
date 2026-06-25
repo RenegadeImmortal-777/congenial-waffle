@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — MedPass</title>
+<link rel="stylesheet" href="/auth.css">
+</head>
+<body>
+<canvas id="bgCanvas" aria-hidden="true"></canvas>
+
+<div class="auth-wrap">
+  <!-- Left brand panel -->
+  <div class="auth-brand-panel">
+    <div class="auth-panel-brand">
+      <div class="auth-panel-mark">MED<span>PASS</span></div>
+      <p class="auth-panel-tagline">The AI-powered study platform built for the next generation of physicians.</p>
+    </div>
+
+    <div class="auth-panel-visual">
+      <div class="apv-ring">
+        <svg viewBox="0 0 120 120" width="120" height="120" aria-hidden="true">
+          <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(99,102,241,0.08)" stroke-width="10"/>
+          <circle cx="60" cy="60" r="50" fill="none" stroke="url(#ringGrad)" stroke-width="10"
+            stroke-dasharray="314" stroke-dashoffset="47"
+            stroke-linecap="round" transform="rotate(-90 60 60)"/>
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#6366F1"/>
+              <stop offset="100%" stop-color="#A78BFA"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="apv-ring-center">
+          <span class="apv-ring-pct">94%</span>
+          <span class="apv-ring-label">Pass Rate</span>
+        </div>
+      </div>
+      <div class="apv-stats">
+        <div class="apv-stat">
+          <span class="apv-stat-val">50K+</span>
+          <span class="apv-stat-key">Questions</span>
+        </div>
+        <div class="apv-stat-divider"></div>
+        <div class="apv-stat">
+          <span class="apv-stat-val">SM-2</span>
+          <span class="apv-stat-key">Algorithm</span>
+        </div>
+        <div class="apv-stat-divider"></div>
+        <div class="apv-stat">
+          <span class="apv-stat-val">AI</span>
+          <span class="apv-stat-key">Powered</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="auth-panel-features">
+      <div class="auth-panel-feature">
+        <div class="auth-panel-feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="auth-panel-feature-text">
+          <h4>AI Quiz Generation</h4>
+          <p>Board-style MCQs generated instantly from your own materials.</p>
+        </div>
+      </div>
+      <div class="auth-panel-feature">
+        <div class="auth-panel-feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <div class="auth-panel-feature-text">
+          <h4>Spaced Repetition</h4>
+          <p>SM-2 algorithm schedules your flashcard reviews for maximum retention.</p>
+        </div>
+      </div>
+      <div class="auth-panel-feature">
+        <div class="auth-panel-feature-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+        </div>
+        <div class="auth-panel-feature-text">
+          <h4>Performance Analytics</h4>
+          <p>Track score trends, streaks, and mastery across every topic.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Form side -->
+  <div class="auth-form-side">
+    <div class="auth-card">
+      <!-- Subtle dot-grid overlay -->
+      <div class="card-grid" aria-hidden="true"></div>
+
+      <!-- Card header row -->
+      <div class="card-header">
+        <div class="card-header-brand">
+          <div class="brand-mark">MED<span>PASS</span></div>
+        </div>
+        <div class="card-session-badge">
+          <span class="session-dot"></span>
+          <span class="vitals-status" id="vitalsStatus">STANDBY</span>
+        </div>
+      </div>
+
+      <!-- ECG vitals strip -->
+      <div class="vitals">
+        <canvas id="vitalsCanvas"></canvas>
+        <span class="vitals-readout">SESSION&nbsp;MONITOR</span>
+      </div>
+
+      <!-- Welcome copy -->
+      <div class="card-welcome">
+        <h1 class="card-welcome-title">Welcome back.</h1>
+        <p class="card-welcome-sub">Sign in to continue your board prep journey.</p>
+      </div>
+
+      <div id="banner" class="banner" role="alert"></div>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="email">Email address</label>
+          <div class="input-icon-wrap">
+            <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <input type="email" id="email" name="email" autocomplete="email"
+              class="has-icon" placeholder="you@university.edu" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="input-row input-icon-wrap">
+            <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <input type="password" id="password" name="password" class="has-toggle has-icon"
+              autocomplete="current-password" placeholder="••••••••" required>
+            <button type="button" class="toggle-visibility" id="toggleBtn" aria-label="Show password">Show</button>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary" id="submitBtn">
+          Sign in
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </form>
+
+      <div class="links-row">
+        <a href="/forgot-password.html">Forgot password?</a>
+        <a href="/signup.html">Create account</a>
+      </div>
+    </div>
+  </div>
+  <div class="auth-page-footer">© 2026 MedPass · All rights reserved</div>
+</div>
+
+<script src="/auth.js"></script>
+<script src="/login-init.js"></script>
+</body>
+</html>
