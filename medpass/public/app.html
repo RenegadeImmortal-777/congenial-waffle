@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedPass — AI Tutor</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#6366F1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MedPass">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+
+  <!-- ── SVG Icon Definitions ──────────────────────────────────────── -->
+  <svg xmlns="http://www.w3.org/2000/svg" hidden>
+    <symbol id="icon-dashboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+      <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+      <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+      <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+    </symbol>
+    <symbol id="icon-quiz" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+    </symbol>
+    <symbol id="icon-cards" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="6" width="14" height="10" rx="2"/>
+      <path d="M16 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2"/>
+    </symbol>
+    <symbol id="icon-analytics" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+    </symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </symbol>
+    <symbol id="icon-planner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </symbol>
+    <symbol id="icon-library" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6z"/>
+      <path d="M13 6a2 2 0 0 1 2-2h4a2 2 0 0 0 2 2v12a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V6z" stroke-dasharray="0"/>
+      <path d="M13 4h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/>
+    </symbol>
+    <symbol id="icon-bookmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+    </symbol>
+    <symbol id="icon-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="1,4 1,10 7,10"/>
+      <path d="M3.51 15a9 9 0 1 0 .49-4.64"/>
+      <polyline points="12,7 12,12 16,14"/>
+    </symbol>
+    <symbol id="icon-logout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <polyline points="16,17 21,12 16,7"/>
+      <line x1="21" y1="12" x2="9" y2="12"/>
+    </symbol>
+    <symbol id="icon-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17,8 12,3 7,8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </symbol>
+    <symbol id="icon-doc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14,2 14,8 20,8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10,9 9,9 8,9"/>
+    </symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </symbol>
+    <symbol id="icon-focus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </symbol>
+    <symbol id="icon-notes" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    </symbol>
+    <symbol id="icon-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9H4V4h16v5h-2"/><path d="M12 15V9"/><path d="M8 15a4 4 0 0 0 8 0V9H8z"/><path d="M8 21h8"/><path d="M12 15v6"/>
+    </symbol>
+    <symbol id="icon-zap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+    </symbol>
+    <symbol id="icon-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+    </symbol>
+  </svg>
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-mark">MED<span>PASS</span></span>
+      <div class="brand-sub">AI Tutor</div>
+    </div>
+
+    <div class="sidebar-nav">
+      <button class="nav-item active" id="navDashboard" data-view="dashboard">
+        <span class="nav-icon"><svg><use href="#icon-dashboard"/></svg></span>
+        <span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" id="navAssess" data-view="assess">
+        <span class="nav-icon"><svg><use href="#icon-quiz"/></svg></span>
+        <span class="nav-label">Study</span>
+      </button>
+      <button class="nav-item" id="navFlashcards" data-view="flashcards">
+        <span class="nav-icon"><svg><use href="#icon-cards"/></svg></span>
+        <span class="nav-label">Flashcards</span>
+        <span class="nav-badge" id="flashBadge" hidden>0</span>
+      </button>
+      <button class="nav-item" id="navAnalytics" data-view="analytics">
+        <span class="nav-icon"><svg><use href="#icon-analytics"/></svg></span>
+        <span class="nav-label">Analytics</span>
+      </button>
+      <button class="nav-item" id="navSearch" data-view="search">
+        <span class="nav-icon"><svg><use href="#icon-search"/></svg></span>
+        <span class="nav-label">Search</span>
+      </button>
+      <button class="nav-item" id="navFocus" data-view="focus">
+        <span class="nav-icon"><svg><use href="#icon-focus"/></svg></span>
+        <span class="nav-label">Focus Room</span>
+      </button>
+      <div class="nav-divider"></div>
+      <button class="nav-item" id="navLibrary" data-view="library">
+        <span class="nav-icon"><svg><use href="#icon-library"/></svg></span>
+        <span class="nav-label">Library</span>
+        <span class="nav-badge" id="docBadge" hidden>0</span>
+      </button>
+      <button class="nav-item" id="navNotes" data-view="notes">
+        <span class="nav-icon"><svg><use href="#icon-notes"/></svg></span>
+        <span class="nav-label">Notes</span>
+        <span class="nav-badge" id="notesBadge" hidden>0</span>
+      </button>
+      <button class="nav-item" id="navBookmarks" data-view="bookmarks">
+        <span class="nav-icon"><svg><use href="#icon-bookmark"/></svg></span>
+        <span class="nav-label">Bookmarks</span>
+      </button>
+      <button class="nav-item" id="navHistory" data-view="history">
+        <span class="nav-icon"><svg><use href="#icon-history"/></svg></span>
+        <span class="nav-label">History</span>
+      </button>
+    </div>
+
+    <!-- XP level bar -->
+    <div class="xp-bar-wrap" id="xpBarWrap">
+      <div class="xp-bar-header">
+        <span class="xp-level-label" id="xpLevelLabel">Lv 1</span>
+        <span class="xp-total-label" id="xpTotalLabel">0 XP</span>
+      </div>
+      <div class="xp-bar-track">
+        <div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Theme switcher -->
+    <div class="theme-switcher">
+      <div class="theme-switcher-label">Theme</div>
+      <div class="theme-btns">
+        <button class="theme-btn" data-theme="clinical" title="Clinical White">☀</button>
+        <button class="theme-btn" data-theme="dark-neon" title="Dark Neon">◉</button>
+        <button class="theme-btn" data-theme="ambient" title="Ambient">◈</button>
+      </div>
+      <div class="ambient-swatches" id="ambientSwatches" style="display:none">
+        <button class="ambient-swatch" data-color="#8B5CF6" style="background:#8B5CF6" title="Violet"></button>
+        <button class="ambient-swatch" data-color="#14B8A6" style="background:#14B8A6" title="Teal"></button>
+        <button class="ambient-swatch" data-color="#F43F5E" style="background:#F43F5E" title="Rose"></button>
+        <button class="ambient-swatch" data-color="#F59E0B" style="background:#F59E0B" title="Amber"></button>
+        <button class="ambient-swatch" data-color="#0EA5E9" style="background:#0EA5E9" title="Sky"></button>
+        <button class="ambient-swatch" data-color="#10B981" style="background:#10B981" title="Emerald"></button>
+        <button class="ambient-swatch" data-color="#F97316" style="background:#F97316" title="Orange"></button>
+        <button class="ambient-swatch" data-color="#6366F1" style="background:#6366F1" title="Indigo"></button>
+      </div>
+    </div>
+
+    <!-- Bottom: user + logout -->
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebarAvatar">?</div>
+        <div class="sidebar-user-info">
+          <span class="sidebar-email" id="userEmail">…</span>
+        </div>
+      </div>
+      <button class="nav-item nav-logout" id="logoutBtn" type="button">
+        <span class="nav-icon"><svg><use href="#icon-logout"/></svg></span>
+        <span class="nav-label">Sign out</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile sidebar toggle -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">
+    <svg width="18" height="18"><use href="#icon-menu"/></svg>
+  </button>
+
+  <!-- ── Main content area ─────────────────────────────────────────── -->
+  <div class="main-area">
+
+    <!-- ══ VIEW: Dashboard ══ -->
+    <div class="view active" id="viewDashboard">
+      <!-- Greeting header -->
+      <div class="dash-hero">
+        <div class="dash-hero-left">
+          <h1 class="dash-hero-title" id="dashGreetTitle">Welcome back 👋</h1>
+          <p class="dash-hero-sub" id="dashGreetSub">Your AI-powered study command center</p>
+        </div>
+        <div class="dash-hero-right">
+          <span class="batch-status-inline" id="batchStatusInline" hidden></span>
+          <button type="button" class="btn-rapid-fire" id="dashRapidFireBtn">
+            <svg width="14" height="14"><use href="#icon-zap"/></svg>
+            Rapid Fire
+          </button>
+          <button type="button" class="btn-companion-open" id="companionOpenBtn" title="Open AI Tutor">
+            <svg width="14" height="14"><use href="#icon-chat"/></svg>
+            AI Tutor
+          </button>
+        </div>
+      </div>
+
+      <main class="dashboard-main dashboard-v2">
+        <!-- Stat widgets row -->
+        <div class="dash-widgets-row">
+          <div class="dash-widget dash-widget-xp" id="dashWidgetXp" title="View analytics">
+            <div class="dash-ring-wrap">
+              <svg class="dash-ring-svg" viewBox="0 0 80 80">
+                <circle class="dash-ring-bg" cx="40" cy="40" r="32"/>
+                <circle class="dash-ring-fill dash-ring-brand" id="dashXpRingFill" cx="40" cy="40" r="32" stroke-dasharray="0 201" stroke-dashoffset="50"/>
+              </svg>
+              <div class="dash-ring-inner">
+                <div class="dash-ring-main" id="dashWLevel">Lv 1</div>
+                <div class="dash-ring-sub" id="dashWXP">0 XP</div>
+              </div>
+            </div>
+            <div class="dash-widget-label">Level & XP</div>
+          </div>
+
+          <div class="dash-widget dash-widget-streak">
+            <div class="dash-streak-icon">🔥</div>
+            <div class="dash-streak-num" id="dashWStreak">0</div>
+            <div class="dash-widget-label">Day Streak</div>
+            <div class="dash-streak-sub" id="dashStreakMsg">Start your streak!</div>
+          </div>
+
+          <div class="dash-widget dash-widget-accuracy">
+            <div class="dash-ring-wrap">
+              <svg class="dash-ring-svg" viewBox="0 0 80 80">
+                <circle class="dash-ring-bg" cx="40" cy="40" r="32"/>
+                <circle class="dash-ring-fill dash-ring-green" id="dashAccRingFill" cx="40" cy="40" r="32" stroke-dasharray="0 201" stroke-dashoffset="50"/>
+              </svg>
+              <div class="dash-ring-inner">
+                <div class="dash-ring-main" id="dashWAccuracy">—%</div>
+                <div class="dash-ring-sub">Accuracy</div>
+              </div>
+            </div>
+            <div class="dash-widget-label">Performance</div>
+          </div>
+
+          <div class="dash-widget dash-widget-counts">
+            <div class="dash-count-item" id="dashCountFlash" title="Go to flashcards">
+              <span class="dash-count-num" id="dashWDue">—</span>
+              <span class="dash-count-label">Cards Due</span>
+            </div>
+            <div class="dash-count-divider"></div>
+            <div class="dash-count-item" id="dashCountDocs" title="Go to library">
+              <span class="dash-count-num" id="dashWDocs">—</span>
+              <span class="dash-count-label">Docs</span>
+            </div>
+            <div class="dash-count-divider"></div>
+            <div class="dash-count-item">
+              <span class="dash-count-num" id="dashWSessions">—</span>
+              <span class="dash-count-label">Sessions</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mid row: Weak Spots + Mini Focus Timer -->
+        <div class="dash-mid-row">
+          <div class="dash-panel">
+            <div class="dash-panel-header">
+              <span class="dash-panel-title">📉 Weak Spots</span>
+              <button type="button" class="btn-ghost btn-sm" id="dashPracticeWeak">Practice →</button>
+            </div>
+            <div class="dash-weak-spots" id="dashWeakSpots">
+              <div class="dash-panel-empty">Complete quizzes to reveal your weak areas</div>
+            </div>
+          </div>
+
+          <div class="dash-panel dash-panel-focus-mini">
+            <div class="dash-panel-header">
+              <span class="dash-panel-title">⏱ Quick Focus</span>
+              <button type="button" class="btn-ghost btn-sm" id="dashGoFocusRoom">Full Room →</button>
+            </div>
+            <div class="dash-focus-mini">
+              <div class="dash-focus-mini-time" id="dashFocusMiniTime">25:00</div>
+              <div class="dash-focus-mini-label" id="dashFocusMiniLabel">Ready to focus</div>
+              <div class="dash-focus-mini-controls">
+                <button type="button" class="focus-start-btn" id="dashFocusStartBtn">▶ Start</button>
+                <button type="button" class="btn-ghost btn-sm" id="dashFocusResetBtn">↺</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom row: Recent sessions + Next achievement -->
+        <div class="dash-bottom-row">
+          <div class="dash-panel">
+            <div class="dash-panel-header">
+              <span class="dash-panel-title">📋 Recent Sessions</span>
+              <button type="button" class="btn-ghost btn-sm" id="dashGoHistory">View all →</button>
+            </div>
+            <div id="dashRecentRuns" class="dash-recent-list">
+              <p class="dash-panel-empty">No sessions yet.</p>
+            </div>
+          </div>
+
+          <div class="dash-panel">
+            <div class="dash-panel-header">
+              <span class="dash-panel-title">🏆 Next Achievement</span>
+              <button type="button" class="btn-ghost btn-sm" id="dashGoAchievements">All badges →</button>
+            </div>
+            <div id="dashNextAchievement" class="dash-next-achievement">
+              <div class="dash-panel-empty">Loading…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick action strip -->
+        <div class="dash-quick-strip">
+          <button type="button" class="dqs-btn dqs-btn-highlight" id="dashQaQuickQuiz">
+            <span class="dqs-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+            <span class="dqs-label">Quick Quiz</span>
+          </button>
+          <button type="button" class="dqs-btn" id="dashQaUpload">
+            <span class="dqs-icon"><svg width="18" height="18"><use href="#icon-upload"/></svg></span>
+            <span class="dqs-label">Upload</span>
+          </button>
+          <button type="button" class="dqs-btn" id="dashQaAssess">
+            <span class="dqs-icon"><svg width="18" height="18"><use href="#icon-quiz"/></svg></span>
+            <span class="dqs-label">Quiz</span>
+          </button>
+          <button type="button" class="dqs-btn" id="dashQaFlash">
+            <span class="dqs-icon"><svg width="18" height="18"><use href="#icon-cards"/></svg></span>
+            <span class="dqs-label">Flashcards</span>
+          </button>
+          <button type="button" class="dqs-btn" id="dashQaFocus">
+            <span class="dqs-icon"><svg width="18" height="18"><use href="#icon-focus"/></svg></span>
+            <span class="dqs-label">Focus</span>
+          </button>
+          <button type="button" class="dqs-btn" id="dashQaNotes">
+            <span class="dqs-icon"><svg width="18" height="18"><use href="#icon-notes"/></svg></span>
+            <span class="dqs-label">Notes</span>
+          </button>
+          <button type="button" class="dqs-btn" id="dashQaChat">
+            <span class="dqs-icon"><svg width="18" height="18"><use href="#icon-chat"/></svg></span>
+            <span class="dqs-label">AI Tutor</span>
+          </button>
+          <button type="button" class="dqs-btn" id="dashQaLib">
+            <span class="dqs-icon"><svg width="18" height="18"><use href="#icon-library"/></svg></span>
+            <span class="dqs-label">Library</span>
+          </button>
+        </div>
+      </main>
+    </div>
+
+    <!-- ══ VIEW: Library ══ -->
+    <div class="view" id="viewLibrary">
+      <div class="view-header">
+        <h1 class="view-title">Library</h1>
+        <div class="view-header-actions">
+          <button class="btn-primary-sm" id="uploadDocBtn">
+            <svg width="14" height="14"><use href="#icon-upload"/></svg>
+            Upload Document
+          </button>
+        </div>
+        <input type="file" id="docFileInput" multiple accept=".txt,.md,application/pdf" hidden>
+      </div>
+
+      <div class="library-content" id="libraryContent">
+        <div class="library-search-bar">
+          <input type="text" class="library-search-input" id="librarySearchInput" placeholder="Search documents…" autocomplete="off">
+          <button type="button" class="library-sort-btn active" id="librarySortBtn">Newest</button>
+          <button type="button" class="library-sort-btn" id="librarySortNameBtn">Name A–Z</button>
+        </div>
+        <div class="library-empty" id="libraryEmpty">
+          <div class="library-empty-icon">
+            <svg width="26" height="26"><use href="#icon-doc"/></svg>
+          </div>
+          <p>No documents yet.</p>
+          <p class="library-empty-sub">Upload PDFs or notes — MedPass will extract questions and generate board-style MCQs and flashcards automatically.</p>
+          <button class="btn-primary-sm" id="uploadDocBtn2">
+            <svg width="14" height="14"><use href="#icon-upload"/></svg>
+            Upload your first document
+          </button>
+        </div>
+        <div class="doc-grid" id="docGrid" hidden></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: History ══ -->
+    <div class="view" id="viewHistory">
+      <div class="view-header">
+        <h1 class="view-title">History</h1>
+        <div class="view-header-actions">
+          <button type="button" class="btn-ghost btn-sm" id="historyExportBtn">↓ Export CSV</button>
+        </div>
+      </div>
+      <div class="history-content">
+        <div class="history-list-main-wrap" style="flex:1; display:flex; flex-direction:column; min-width:0;">
+          <div class="history-search-wrap">
+            <input type="text" class="history-search-input" id="historySearchInput" placeholder="Search sessions…" autocomplete="off">
+          </div>
+          <div class="history-stats-strip" id="historyStatsStrip" hidden></div>
+          <div id="historyListMain" class="history-list-main"></div>
+        </div>
+        <div id="historyDetailMain" class="history-detail-main" hidden></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Assessment ══ -->
+    <div class="view" id="viewAssess">
+      <div class="view-header">
+        <h1 class="view-title">Study</h1>
+      </div>
+      <div class="assess-picker" id="assessPicker">
+        <div class="assess-gen-banner">
+          <div class="assess-gen-banner-text">
+            <div class="assess-gen-banner-title">Generate a quiz with AI</div>
+            <div class="assess-gen-banner-sub">Pick a topic, set a question count, choose Bloom's taxonomy levels — get a full board-style MCQ quiz in seconds.</div>
+          </div>
+          <button type="button" class="btn-assess-gen" id="btnOpenAssessGen">Configure Quiz →</button>
+        </div>
+        <div class="assess-divider"><span>or continue a previous session</span></div>
+        <div id="assessRunList" class="assess-run-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Bookmarks ══ -->
+    <div class="view" id="viewBookmarks">
+      <div class="view-header">
+        <h1 class="view-title">Bookmarks</h1>
+        <div class="view-header-actions">
+          <button type="button" class="btn-ghost btn-sm" id="bookmarksExportBtn">↓ Export CSV</button>
+        </div>
+      </div>
+      <div id="bookmarksMain" class="history-list-main"></div>
+    </div>
+
+    <!-- ══ VIEW: Assessment Setup ══ -->
+    <div class="view" id="viewAssessSetup">
+      <div class="assess-page-inner">
+        <div class="assess-header">
+          <button type="button" class="btn-ghost btn-sm" id="assessCloseBtn">← Back</button>
+          <span class="assess-title" id="assessSetupTitle">Configure your quiz</span>
+        </div>
+
+        <div class="setup-section">
+          <div class="setup-section-label">Number of questions</div>
+          <div class="assess-count-row" id="assessCountRow">
+            <button class="assess-count-btn" data-n="5">5</button>
+            <button class="assess-count-btn active" data-n="10">10</button>
+            <button class="assess-count-btn" data-n="15">15</button>
+            <button class="assess-count-btn" data-n="20">20</button>
+            <button class="assess-count-btn" data-n="30">30</button>
+          </div>
+          <div class="assess-count-custom-wrap">
+            <input type="number" id="assessCountCustom" class="assess-count-custom" placeholder="or enter a custom number…" min="1" max="60">
+          </div>
+        </div>
+
+        <div class="setup-section">
+          <div class="setup-section-label">Bloom's taxonomy levels</div>
+          <div class="setup-section-sub">Select one or more cognitive levels for your questions</div>
+          <div class="bloom-grid" id="assessBloomGrid">
+            <label class="bloom-chip bloom-remember">
+              <input type="checkbox" value="remember" checked>
+              <span class="bloom-chip-icon">🧠</span>
+              <span class="bloom-chip-name">Remember</span>
+              <span class="bloom-chip-desc">Recall facts &amp; definitions</span>
+            </label>
+            <label class="bloom-chip bloom-understand">
+              <input type="checkbox" value="understand" checked>
+              <span class="bloom-chip-icon">💡</span>
+              <span class="bloom-chip-name">Understand</span>
+              <span class="bloom-chip-desc">Explain mechanisms</span>
+            </label>
+            <label class="bloom-chip bloom-apply">
+              <input type="checkbox" value="apply" checked>
+              <span class="bloom-chip-icon">⚙️</span>
+              <span class="bloom-chip-name">Apply</span>
+              <span class="bloom-chip-desc">Clinical scenarios</span>
+            </label>
+            <label class="bloom-chip bloom-analyze">
+              <input type="checkbox" value="analyze">
+              <span class="bloom-chip-icon">🔬</span>
+              <span class="bloom-chip-name">Analyse</span>
+              <span class="bloom-chip-desc">Compare &amp; differentiate</span>
+            </label>
+            <label class="bloom-chip bloom-evaluate">
+              <input type="checkbox" value="evaluate">
+              <span class="bloom-chip-icon">⚖️</span>
+              <span class="bloom-chip-name">Evaluate</span>
+              <span class="bloom-chip-desc">Critique management</span>
+            </label>
+            <label class="bloom-chip bloom-create">
+              <input type="checkbox" value="create">
+              <span class="bloom-chip-icon">✨</span>
+              <span class="bloom-chip-name">Create</span>
+              <span class="bloom-chip-desc">Devise care plans</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="setup-section">
+          <div class="setup-section-label">Timed Exam Mode</div>
+          <div class="setup-section-sub">Set a countdown per question to simulate real exam pressure</div>
+          <div class="timed-mode-row">
+            <label class="timed-mode-toggle-label">
+              <input type="checkbox" id="timedModeToggle">
+              Enable timed mode
+            </label>
+            <div class="timed-mode-options" id="timedModeOptions" style="display:none">
+              <div class="timed-time-row" id="timedTimeRow">
+                <button class="timed-time-btn active" data-secs="60">1 min</button>
+                <button class="timed-time-btn" data-secs="90">1.5 min</button>
+                <button class="timed-time-btn" data-secs="120">2 min</button>
+                <button class="timed-time-btn" data-secs="180">3 min</button>
+                <button class="timed-time-btn" data-secs="0">No limit</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="assess-gen-status hidden" id="assessGenStatus">
+          <div class="assess-gen-bar-wrap">
+            <div class="assess-gen-bar" id="assessGenBar" style="width:0%"></div>
+          </div>
+          <div class="assess-gen-label" id="assessGenLabel">Generating questions…</div>
+        </div>
+
+        <button type="button" class="btn-assess-start" id="assessStartBtn">
+          Generate Quiz →
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Assessment Quiz ══ -->
+    <div class="view" id="viewAssessQuiz">
+      <div class="assess-quiz-header">
+        <div class="assess-quiz-header-top">
+          <div>
+            <div class="assess-title" id="assessQuizTitle">Quiz</div>
+            <div class="assess-quiz-bloom-tag" id="assessQuizBloom"></div>
+          </div>
+          <div class="assess-quiz-header-right">
+            <div class="quiz-timer-wrap" id="quizTimerWrap" hidden>
+              <svg class="quiz-timer-ring" viewBox="0 0 44 44">
+                <circle class="timer-ring-bg" cx="22" cy="22" r="18" fill="none" stroke-width="3"/>
+                <circle class="timer-ring-fill" id="timerRingFill" cx="22" cy="22" r="18" fill="none" stroke-width="3"
+                  stroke-dasharray="113" stroke-dashoffset="0"
+                  transform="rotate(-90 22 22)"/>
+              </svg>
+              <div class="quiz-timer-display" id="quizTimerDisplay">—</div>
+            </div>
+            <button type="button" class="btn-ghost btn-sm" id="assessQuizCloseBtn">← Back</button>
+          </div>
+        </div>
+        <div class="assess-progress-track">
+          <div class="assess-progress-fill" id="assessProgressFill" style="width:0%"></div>
+        </div>
+        <div class="assess-quiz-meta">
+          <span id="assessAnsweredCount">0 / 0 answered</span>
+          <button type="button" class="btn-assess-submit" id="assessSubmitBtn" disabled>Submit Quiz →</button>
+        </div>
+      </div>
+      <div class="assess-quiz-scroll" id="assessQuizScroll"></div>
+    </div>
+
+    <!-- ══ VIEW: Assessment Results ══ -->
+    <div class="view" id="viewAssessResult">
+      <div class="assess-page-inner">
+        <div class="assess-result-header">
+          <span class="assess-title">Results</span>
+          <button type="button" class="btn-ghost btn-sm" id="assessResultCloseBtn">← Study</button>
+        </div>
+
+        <div class="assess-score-ring-wrap">
+          <svg class="score-ring" viewBox="0 0 110 110">
+            <circle class="ring-bg" cx="55" cy="55" r="50" fill="none" stroke-width="8"/>
+            <circle class="ring-fill" id="ringFill" cx="55" cy="55" r="50" fill="none" stroke-width="8"
+              stroke-dasharray="314" stroke-dashoffset="314"
+              transform="rotate(-90 55 55)"/>
+          </svg>
+          <div class="score-ring-label" id="assessScorePct">0%</div>
+        </div>
+
+        <div class="assess-xp-earned" id="assessXpEarned" hidden>
+          <span class="xp-earned-icon">🏆</span>
+          <span class="xp-earned-text" id="assessXpEarnedText">+0 XP earned!</span>
+        </div>
+
+        <div class="assess-result-stats" id="assessResultStats"></div>
+        <div class="assess-bloom-breakdown" id="assessBloomBreakdown"></div>
+        <div class="assess-result-review" id="assessResultReview"></div>
+
+        <div class="assess-result-actions">
+          <button type="button" class="btn-assess-retry" id="assessRetryBtn">Retry Quiz</button>
+          <button type="button" class="btn-ghost btn-sm" id="assessResultExportBtn">↓ Export CSV</button>
+          <button type="button" class="btn-ghost btn-sm" id="assessResultCloseBtn2">← Study</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Flashcards ══ -->
+    <div class="view" id="viewFlashcards">
+      <div class="view-header">
+        <h1 class="view-title">Flashcards</h1>
+        <div class="view-header-actions">
+          <button type="button" class="btn-ghost btn-sm" id="flashExportBtn">↓ Export CSV</button>
+        </div>
+      </div>
+      <div class="flashcard-toolbar">
+        <select id="flashDocSelect" class="flashcard-filter-select">
+          <option value="">All documents</option>
+        </select>
+        <span class="flashcard-count" id="flashCounter">0 cards</span>
+        <button type="button" class="btn-review-due" id="flashReviewDueBtn" hidden>
+          <span id="flashReviewDueBadgeCount"></span> Review Due
+        </button>
+        <button type="button" class="btn-ghost btn-sm" id="flashShuffleBtn">Shuffle</button>
+      </div>
+
+      <div class="flash-review-banner" id="flashReviewBanner" hidden>
+        <span class="flash-review-banner-icon">⏰</span>
+        <span id="flashReviewBannerText">Reviewing due cards…</span>
+        <button type="button" class="btn-ghost btn-xs" id="flashReviewExitBtn">Exit Review</button>
+      </div>
+
+      <div class="flashcard-arena" id="flashcardArena">
+        <div class="flashcard-empty" id="flashEmpty">
+          <span class="flashcard-empty-icon">🃏</span>
+          <p>No flashcards yet. Upload a <strong>notes</strong> document from the Library tab — flashcards will be generated automatically.</p>
+          <button type="button" class="btn-primary-sm" id="flashUploadBtn">Upload Notes Document</button>
+        </div>
+        <div id="flashDeckWrap" hidden>
+          <div class="flash-deck-name" id="flashDeckName"></div>
+          <div class="flashcard" id="flashCard" role="button" tabindex="0" aria-label="Flip card">
+            <div class="flashcard-face flashcard-front">
+              <div class="flashcard-label">CONCEPT</div>
+              <div class="flashcard-text" id="flashFrontText"></div>
+            </div>
+            <div class="flashcard-face flashcard-back">
+              <div class="flashcard-label">ANSWER</div>
+              <div class="flashcard-text" id="flashBackText"></div>
+            </div>
+          </div>
+          <div class="flashcard-progress-bar"><div class="flashcard-progress-fill" id="flashProgressFill"></div></div>
+          <div class="flashcard-nav">
+            <button type="button" class="flashcard-nav-btn" id="flashPrevBtn">←</button>
+            <button type="button" class="flashcard-nav-btn" id="flashNextBtn">→</button>
+          </div>
+          <div class="flashcard-srs" id="flashSrsButtons" hidden>
+            <div class="flashcard-srs-label">How well did you recall it?</div>
+            <div class="flashcard-srs-btns">
+              <button type="button" class="srs-btn srs-again" data-rating="0" title="Forgot — show again soon">Again</button>
+              <button type="button" class="srs-btn srs-hard" data-rating="1" title="Hard — recalled with effort">Hard</button>
+              <button type="button" class="srs-btn srs-good" data-rating="2" title="Good — recalled correctly">Good</button>
+              <button type="button" class="srs-btn srs-easy" data-rating="3" title="Easy — knew it instantly">Easy</button>
+            </div>
+          </div>
+          <div class="flashcard-due-badge" id="flashDueBadge" hidden></div>
+          <div class="flashcard-hint" id="flashHint">Click card or press Space to flip</div>
+        </div>
+
+        <div class="flash-review-summary" id="flashReviewSummary" hidden>
+          <div class="review-summary-icon">🎉</div>
+          <h2 class="review-summary-title">Session Complete!</h2>
+          <p class="review-summary-subtitle" id="reviewSummarySubtitle"></p>
+          <div class="review-summary-ring-wrap">
+            <svg class="review-ring" viewBox="0 0 120 120" width="120" height="120">
+              <circle class="review-ring-track" cx="60" cy="60" r="52" fill="none" stroke-width="10"/>
+              <circle class="review-ring-fill" id="reviewRingFill" cx="60" cy="60" r="52" fill="none" stroke-width="10"
+                stroke-dasharray="326.7" stroke-dashoffset="326.7" stroke-linecap="round"
+                transform="rotate(-90 60 60)"/>
+              <text class="review-ring-pct" id="reviewRingPct" x="60" y="67" text-anchor="middle"></text>
+            </svg>
+          </div>
+          <div class="review-summary-breakdown" id="reviewSummaryBreakdown"></div>
+          <div class="review-summary-next" id="reviewSummaryNext"></div>
+          <div class="review-summary-actions">
+            <button type="button" class="btn-primary-sm" id="reviewSummaryReviewAgainBtn">Review Again</button>
+            <button type="button" class="btn-ghost btn-sm" id="reviewSummaryAllCardsBtn">All Cards</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Analytics ══ -->
+    <div class="view" id="viewAnalytics">
+      <div class="view-header">
+        <h1 class="view-title">Analytics</h1>
+        <div class="view-header-actions">
+          <button type="button" class="btn-ghost btn-sm" id="analyticsRefreshBtn">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="analytics-main" id="analyticsMain">
+        <div class="analytics-loading" id="analyticsLoading">
+          <div class="spinner"></div>
+          <p>Loading analytics…</p>
+        </div>
+        <div class="analytics-content" id="analyticsContent" hidden>
+          <div class="analytics-row">
+            <div class="analytics-card analytics-card-xp" id="analyticsXpCard">
+              <div class="analytics-card-title">Level &amp; XP</div>
+              <div class="analytics-xp-level" id="analyticsXpLevel">—</div>
+              <div class="analytics-xp-bar-wrap">
+                <div class="analytics-xp-bar-fill" id="analyticsXpBarFill" style="width:0%"></div>
+              </div>
+              <div class="analytics-xp-sub" id="analyticsXpSub"></div>
+            </div>
+            <div class="analytics-card analytics-card-summary" id="analyticsSummaryCard">
+              <div class="analytics-card-title">Overview</div>
+              <div class="analytics-summary-grid" id="analyticsSummaryGrid"></div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card-wide">
+            <div class="analytics-card-title">Score Trend <span class="analytics-card-sub">(last 30 sessions)</span></div>
+            <div class="analytics-chart-wrap" id="scoreTrendChartWrap">
+              <svg class="analytics-chart" id="scoreTrendChart" width="100%" height="200"></svg>
+              <div class="analytics-chart-empty" id="scoreTrendEmpty" hidden>No quiz data yet. Complete a study session to see trends.</div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card-wide">
+            <div class="analytics-card-title">Performance by Document <span class="analytics-card-sub">(top 10)</span></div>
+            <div class="analytics-bar-chart-wrap" id="docBarChartWrap">
+              <div class="analytics-bar-chart" id="docBarChart"></div>
+              <div class="analytics-chart-empty" id="docBarEmpty" hidden>No quiz data yet.</div>
+            </div>
+          </div>
+
+          <div class="analytics-card analytics-card-wide">
+            <div class="analytics-card-title">Weekly Activity <span class="analytics-card-sub">(last 8 weeks)</span></div>
+            <div class="analytics-weekly-chart" id="weeklyActivityChart"></div>
+          </div>
+
+          <!-- Achievements section -->
+          <div class="analytics-card analytics-card-wide achievements-card" id="achievementsCard">
+            <div class="achievements-header">
+              <div class="analytics-card-title">🏆 Achievements</div>
+              <div class="achievements-meta" id="achievementsMeta"></div>
+            </div>
+            <div class="achievements-cats" id="achievementsCats"></div>
+            <div class="achievements-grid" id="achievementsGrid">
+              <div class="achievements-loading">Loading achievements…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Search ══ -->
+    <div class="view" id="viewSearch">
+      <div class="view-header">
+        <h1 class="view-title">Search</h1>
+      </div>
+      <div class="search-main">
+        <div class="search-bar-wrap">
+          <input type="text" class="search-bar-input" id="searchBarInput"
+            placeholder="Search documents, flashcards, bookmarks…" autocomplete="off" spellcheck="false">
+          <button type="button" class="search-bar-btn" id="searchBarBtn">Search</button>
+        </div>
+        <div class="search-results" id="searchResults">
+          <div class="search-hint" id="searchHint">Type at least 2 characters to search across all your content.</div>
+          <div class="search-loading" id="searchLoading" hidden>
+            <div class="spinner"></div>
+          </div>
+          <div class="search-sections" id="searchSections" hidden>
+            <div class="search-section" id="searchSectionDocs" hidden>
+              <div class="search-section-title">Documents</div>
+              <div class="search-section-items" id="searchDocItems"></div>
+            </div>
+            <div class="search-section" id="searchSectionCards" hidden>
+              <div class="search-section-title">Flashcards</div>
+              <div class="search-section-items" id="searchCardItems"></div>
+            </div>
+            <div class="search-section" id="searchSectionBookmarks" hidden>
+              <div class="search-section-title">Bookmarks</div>
+              <div class="search-section-items" id="searchBookmarkItems"></div>
+            </div>
+            <div class="search-empty" id="searchEmpty" hidden>No results found for your query.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Focus Room ══ -->
+    <div class="view" id="viewFocus">
+      <div class="view-header">
+        <h1 class="view-title">Focus Room</h1>
+        <div class="view-header-actions">
+          <span class="focus-today-summary" id="focusTodaySummaryHeader"></span>
+        </div>
+      </div>
+      <div class="focus-main">
+        <div class="focus-mode-tabs">
+          <button class="focus-mode-tab active" data-mins="25" id="focusTab25">🎯 Focus · 25 min</button>
+          <button class="focus-mode-tab" data-mins="5" id="focusTab5">☕ Short Break · 5 min</button>
+          <button class="focus-mode-tab" data-mins="15" id="focusTab15">🌿 Long Break · 15 min</button>
+          <button class="focus-mode-tab focus-tab-custom" id="focusTabCustom">⚙ Custom</button>
+        </div>
+        <div class="focus-custom-row" id="focusCustomRow" hidden>
+          <label class="focus-custom-label">Minutes:</label>
+          <input type="number" class="focus-custom-input" id="focusCustomMins" min="1" max="120" value="30">
+          <button type="button" class="btn-primary-sm" id="focusCustomSetBtn">Set</button>
+        </div>
+
+        <div class="focus-timer-wrap">
+          <svg class="focus-ring-svg" viewBox="0 0 280 280">
+            <circle class="focus-ring-track" cx="140" cy="140" r="120"/>
+            <circle class="focus-ring-fill" id="focusRingFill" cx="140" cy="140" r="120"
+                    stroke-dasharray="754 754" stroke-dashoffset="0"/>
+          </svg>
+          <div class="focus-timer-inner">
+            <div class="focus-mode-label" id="focusModeLabel">Focus</div>
+            <div class="focus-timer-display" id="focusTimerDisplay">25:00</div>
+            <div class="focus-timer-status" id="focusTimerStatus">Ready to focus</div>
+          </div>
+        </div>
+
+        <div class="focus-subject-row">
+          <input type="text" class="focus-subject-input" id="focusSubjectInput"
+                 placeholder="What are you studying? (optional)" maxlength="100">
+        </div>
+
+        <div class="focus-controls">
+          <button type="button" class="focus-btn-primary" id="focusStartBtn">▶ Start</button>
+          <button type="button" class="focus-btn-secondary" id="focusResetBtn">↺ Reset</button>
+        </div>
+
+        <div class="focus-sessions-panel">
+          <div class="focus-sessions-hdr">
+            <span class="focus-sessions-title">Today's Sessions</span>
+            <span class="focus-sessions-total" id="focusTodaySummary">0 min · 0 sessions</span>
+          </div>
+          <div class="focus-sessions-list" id="focusSessionsList">
+            <div class="focus-empty">No sessions yet today. Start your first focus session!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VIEW: Notes ══ -->
+    <div class="view" id="viewNotes">
+      <div class="view-header">
+        <h1 class="view-title">Notes</h1>
+        <div class="view-header-actions">
+          <input type="text" class="notes-header-search" id="notesSearch" placeholder="Search notes…" autocomplete="off">
+          <button type="button" class="btn-primary-sm" id="createNoteBtn">
+            + New Note
+          </button>
+        </div>
+      </div>
+      <div class="notes-main">
+        <div class="notes-grid" id="notesGrid">
+          <div class="notes-empty" id="notesEmpty">
+            <div class="notes-empty-icon">📓</div>
+            <p>No notes yet.</p>
+            <p class="notes-empty-sub">Capture key concepts, mnemonics, drug mechanisms — anything worth remembering.</p>
+            <button type="button" class="btn-primary-sm" id="createNoteBtn2">Create your first note</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.main-area -->
+
+  <!-- ── Rapid Fire overlay ───────────────────────────────────────────── -->
+  <div class="modal-overlay" id="rapidFireOverlay" hidden>
+    <div class="modal-card rapid-fire-card">
+      <div id="rfIdle">
+        <div class="rf-title"><svg width="20" height="20" style="vertical-align:-3px"><use href="#icon-zap"/></svg> Rapid Fire</div>
+        <div class="rf-desc">Answer as many questions as possible in <strong>60 seconds</strong>!</div>
+        <div class="rf-source-note" id="rfSourceNote">Drawing from your bookmarks &amp; flashcards</div>
+        <div class="rf-idle-btns">
+          <button type="button" class="btn-primary-sm rf-start-btn" id="rfStartBtn">⚡ Start Challenge</button>
+          <button type="button" class="btn-ghost btn-sm" id="rfCloseIdle">Cancel</button>
+        </div>
+      </div>
+      <div id="rfActive" hidden>
+        <div class="rf-header">
+          <span class="rf-q-counter" id="rfQCounter">Q 1</span>
+          <span class="rf-countdown" id="rfCountdown">60</span>
+          <span class="rf-score-live" id="rfScoreLive">0 ✓</span>
+        </div>
+        <div class="rf-progress-bar"><div class="rf-progress-fill" id="rfProgressFill" style="width:100%"></div></div>
+        <div class="rf-question" id="rfQuestion">Loading…</div>
+        <div class="rf-options" id="rfOptions"></div>
+      </div>
+      <div id="rfResult" hidden>
+        <div class="rf-result-icon">⚡</div>
+        <div class="rf-result-score" id="rfResultScore">0/0</div>
+        <div class="rf-result-label">correct answers</div>
+        <div class="rf-result-xp" id="rfResultXp"></div>
+        <div class="rf-result-btns">
+          <button type="button" class="btn-primary-sm" id="rfPlayAgain">Play Again</button>
+          <button type="button" class="btn-ghost btn-sm" id="rfCloseResult">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Note Editor modal ─────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="noteEditorModal" hidden>
+    <div class="modal-card note-editor-card">
+      <div class="modal-header">
+        <span class="modal-title" id="noteEditorTitle">New Note</span>
+        <div class="note-color-picker">
+          <button class="note-color-btn active" data-color="violet" style="--nc:#A78BFA" title="Violet"></button>
+          <button class="note-color-btn" data-color="rose" style="--nc:#FB7185" title="Rose"></button>
+          <button class="note-color-btn" data-color="gold" style="--nc:#FBBF24" title="Gold"></button>
+          <button class="note-color-btn" data-color="green" style="--nc:#34D399" title="Green"></button>
+          <button class="note-color-btn" data-color="blue" style="--nc:#60A5FA" title="Blue"></button>
+          <button class="note-color-btn" data-color="slate" style="--nc:#94A3B8" title="Slate"></button>
+        </div>
+        <button type="button" class="modal-close-btn" id="noteEditorClose">✕</button>
+      </div>
+      <div class="modal-body note-editor-body">
+        <input type="text" class="note-title-input" id="noteEditorTitleInput" placeholder="Note title…" maxlength="100" autocomplete="off">
+        <textarea class="note-body-textarea" id="noteEditorBody" placeholder="Write your note here…&#10;&#10;Great for: drug mechanisms, mnemonics, key facts, step-by-step processes."></textarea>
+      </div>
+      <div class="modal-footer">
+        <label class="note-pin-label">
+          <input type="checkbox" id="noteEditorPin"> 📌 Pin to top
+        </label>
+        <div class="modal-footer-actions">
+          <button type="button" class="btn-primary-sm" id="noteEditorSave">Save Note</button>
+          <button type="button" class="btn-ghost btn-sm" id="noteEditorCancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Document processing overlay ───────────────────────────────── -->
+  <div class="doc-process-overlay" id="docProcessOverlay" hidden>
+    <div class="doc-process-card">
+      <div class="doc-process-icon" id="docProcessIcon">⚕</div>
+      <div class="doc-process-title" id="docProcessTitle">Processing…</div>
+      <div class="doc-process-sub" id="docProcessSub"></div>
+      <div class="doc-process-bar-wrap" id="docProcessBar">
+        <div class="doc-process-bar-fill" id="docProcessFill" style="width:0%"></div>
+      </div>
+      <div class="doc-process-error" id="docProcessError" hidden></div>
+      <div class="doc-process-actions" id="docProcessActions" hidden>
+        <button type="button" class="btn-primary-sm" id="docProcessRetryBtn">Retry</button>
+        <button type="button" class="btn-ghost btn-sm" id="docProcessCloseBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Tag editor modal ───────────────────────────────────────────── -->
+  <div class="modal-overlay" id="tagEditorModal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">Edit tags</span>
+        <button type="button" class="modal-close-btn" id="tagEditorClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Comma-separated tags to organise this document</p>
+        <input type="text" class="modal-input" id="tagEditorInput" placeholder="e.g. cardiology, anatomy, revision">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary-sm" id="tagEditorSave">Save</button>
+        <button type="button" class="btn-ghost btn-sm" id="tagEditorCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Share modal ───────────────────────────────────────────────── -->
+  <div class="modal-overlay" id="shareModal" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <span class="modal-title">Share document</span>
+        <button type="button" class="modal-close-btn" id="shareModalClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Anyone with this link can view the document text (read-only, no login required).</p>
+        <div class="share-link-row">
+          <input type="text" class="modal-input share-link-input" id="shareLinkInput" readonly>
+          <button type="button" class="btn-primary-sm" id="shareCopyBtn">Copy</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-danger-sm" id="shareRevokeBtn">Revoke link</button>
+        <button type="button" class="btn-ghost btn-sm" id="shareModalCancel">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── AI Companion panel ─────────────────────────────────────────── -->
+  <div class="companion-overlay" id="companionOverlay" hidden></div>
+  <div class="companion-panel" id="companionPanel" hidden>
+    <div class="companion-header">
+      <div class="companion-header-info">
+        <div class="companion-avatar">
+          <svg width="18" height="18"><use href="#icon-chat"/></svg>
+        </div>
+        <div>
+          <div class="companion-name">MedPass AI Tutor</div>
+          <div class="companion-sub">Powered by Groq · Ready to help</div>
+        </div>
+      </div>
+      <button type="button" class="companion-clear-btn" id="companionClearBtn" title="Clear chat history">🗑</button>
+      <button type="button" class="companion-close-btn" id="companionCloseBtn">✕</button>
+    </div>
+    <div class="companion-chat-log" id="companionChatLog">
+      <div class="companion-empty" id="companionEmpty">
+        <div class="companion-empty-icon">
+          <svg width="20" height="20"><use href="#icon-chat"/></svg>
+        </div>
+        <p>Ask anything about your studies, or attach a document to solve its questions automatically.</p>
+      </div>
+    </div>
+    <div class="upload-progress-wrap" id="uploadProgressWrap" hidden>
+      <div class="upload-progress-label" id="uploadProgressLabel"></div>
+      <div class="upload-progress-bar">
+        <div class="upload-progress-fill" id="uploadProgressFill" style="width:0%"></div>
+      </div>
+    </div>
+    <form class="composer" id="composer" autocomplete="off">
+      <div class="composer-attachments" id="attachmentsRow"></div>
+      <div class="composer-row">
+        <div class="composer-input-wrap">
+          <textarea class="composer-input" id="messageInput" placeholder="Ask anything about your studies…" rows="1"></textarea>
+        </div>
+        <div class="composer-actions">
+          <button type="button" class="btn-attach" id="attachBtn" title="Attach file">📎</button>
+          <button type="button" class="btn-solve-all" id="solveAllBtn" title="Solve All — process the attached document and download PDF" hidden>
+            ⚡ Solve All
+          </button>
+          <div class="verify-toggle-wrap" id="verifyToggleWrap" hidden>
+            <label id="verifyToggleLabel" class="verify-toggle-label" title="Run a second model pass to catch likely wrong answers">
+              <input type="checkbox" id="verifyToggle" checked>
+              <span>Double-check</span>
+            </label>
+          </div>
+          <button type="submit" class="btn-send" id="sendBtn" disabled>↑</button>
+        </div>
+      </div>
+    </form>
+    <input type="file" id="fileInput" accept=".txt,.md,.pdf,image/*" hidden multiple>
+  </div>
+
+  <!-- ── Batch status banner ────────────────────────────────────────── -->
+  <div class="batch-status" id="batchStatus" hidden>
+    <div class="batch-status-inner">
+      <div class="batch-status-row">
+        <span class="batch-status-text" id="batchStatusText"></span>
+        <button type="button" class="batch-cancel-btn" id="batchCancelBtn">Cancel</button>
+      </div>
+      <div class="batch-progress-wrap">
+        <div class="batch-progress-fill" id="batchProgressFill" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Shortcuts overlay ──────────────────────────────────────────── -->
+  <div class="shortcuts-overlay" id="shortcutsOverlay" hidden>
+    <div class="shortcuts-card">
+      <div class="shortcuts-header">
+        <span class="shortcuts-title">Keyboard shortcuts</span>
+        <button type="button" class="shortcuts-close" id="shortcutsClose">✕</button>
+      </div>
+      <div class="shortcuts-body">
+        <div class="shortcuts-group">
+          <div class="shortcuts-group-title">Navigation</div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>d</kbd><span>Dashboard</span></div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>a</kbd><span>Study (Quiz)</span></div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>f</kbd><span>Flashcards</span></div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>n</kbd><span>Analytics</span></div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>s</kbd><span>Search</span></div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>p</kbd><span>Planner</span></div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>l</kbd><span>Library</span></div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>b</kbd><span>Bookmarks</span></div>
+          <div class="shortcut-row"><kbd>g</kbd><kbd>h</kbd><span>History</span></div>
+        </div>
+        <div class="shortcuts-group">
+          <div class="shortcuts-group-title">Global</div>
+          <div class="shortcut-row"><kbd>c</kbd><span>Open AI Tutor</span></div>
+          <div class="shortcut-row"><kbd>?</kbd><span>Show shortcuts</span></div>
+          <div class="shortcut-row"><kbd>Esc</kbd><span>Close panel / overlay</span></div>
+        </div>
+        <div class="shortcuts-group">
+          <div class="shortcuts-group-title">Flashcards</div>
+          <div class="shortcut-row"><kbd>Space</kbd><span>Flip card</span></div>
+          <div class="shortcut-row"><kbd>←</kbd> <kbd>→</kbd><span>Previous / Next</span></div>
+          <div class="shortcut-row"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><span>Rate (Again / Hard / Good / Easy)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <!-- Floating theme cycle button -->
+  <button class="theme-float-btn" id="themeFloatBtn" aria-label="Switch theme" title="Cycle theme">
+    <svg id="themeFloatIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <span id="themeFloatLabel">Dark</span>
+  </button>
+
+  <script src="/vendor/pdfjs/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <script src="/app.js"></script>
+  <script>
+  (function () {
+    var THEMES = [
+      { key: '',         label: 'Dark',     icon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>' },
+      { key: 'clinical', label: 'Clinical', icon: '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>' },
+      { key: 'dark-neon', label: 'Neon',   icon: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>' },
+      { key: 'ambient',  label: 'Ambient',  icon: '<circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>' }
+    ];
+    var btn = document.getElementById('themeFloatBtn');
+    var iconEl = document.getElementById('themeFloatIcon');
+    var labelEl = document.getElementById('themeFloatLabel');
+    if (!btn) return;
+
+    function curTheme() { return localStorage.getItem('medpass-theme') || ''; }
+
+    function apply(t) {
+      if (!t.key) { document.documentElement.removeAttribute('data-theme'); }
+      else { document.documentElement.setAttribute('data-theme', t.key); }
+      localStorage.setItem('medpass-theme', t.key);
+      iconEl.innerHTML = t.icon;
+      labelEl.textContent = t.label;
+      btn.dataset.theme = t.key;
+      document.querySelectorAll('.theme-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.theme === t.key);
+      });
+    }
+
+    btn.addEventListener('click', function () {
+      var cur = curTheme();
+      var idx = THEMES.findIndex(function(t){ return t.key === cur; });
+      apply(THEMES[(idx + 1) % THEMES.length]);
+    });
+
+    var init = THEMES.find(function(t){ return t.key === curTheme(); }) || THEMES[0];
+    apply(init);
+  })();
+  </script>
+</body>
+</html>
