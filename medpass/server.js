@@ -27,6 +27,8 @@ const STATIC_FILES = new Set([
   '/app.js',
   '/manifest.json',
   '/sw.js',
+  '/vendor/pdfjs/pdf.min.js',
+  '/vendor/pdfjs/pdf.worker.min.js',
 ]);
 
 function setSecurityHeaders(res) {
@@ -36,7 +38,7 @@ function setSecurityHeaders(res) {
     'Content-Security-Policy',
     "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
     "font-src 'self' https://fonts.gstatic.com; " +
-    "script-src 'self' https://cdnjs.cloudflare.com; worker-src 'self' blob: https://cdnjs.cloudflare.com; " +
+    "script-src 'self'; worker-src 'self' blob:; " +
     "connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com"
   );
 }

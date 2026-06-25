@@ -201,10 +201,10 @@ document.addEventListener('click', (e) => {
 
 
 if (window.pdfjsLib) {
-  // Classic (non-module) pdf.js build — text extraction only, so this is
-  // the simplest reliable CDN setup (avoids ES-module worker quirks).
-  window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  // Classic (non-module) pdf.js build, vendored locally under
+  // public/vendor/pdfjs/ so PDF text extraction doesn't depend on a
+  // third-party CDN being reachable at runtime (see public/vendor/pdfjs/README.md).
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
 }
 
 const history = [];
