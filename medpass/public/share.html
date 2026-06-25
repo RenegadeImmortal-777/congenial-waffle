@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Shared Document — MedPass</title>
+  <link rel="stylesheet" href="/auth.css"/>
+  <style>
+    body { align-items: flex-start; padding: 40px 20px; }
+    .share-doc { max-width: 760px; width: 100%; margin: 0 auto; }
+    .share-header { margin-bottom: 28px; }
+    .share-title { font-family: var(--font-hero); font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .share-meta { font-size: 13px; color: var(--text-2); }
+    .share-body { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; font-size: 14px; line-height: 1.75; white-space: pre-wrap; word-break: break-word; }
+    .share-cta { text-align: center; margin-top: 28px; }
+    .share-cta a { display: inline-block; padding: 12px 28px; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="share-doc">
+    <div class="auth-logo" style="text-align:left;margin-bottom:28px;">
+      <div class="auth-logo-mark">MED<span>PASS</span></div>
+    </div>
+    <div id="content"><p style="color:var(--text-2)">Loading…</p></div>
+  </div>
+  <script>
+    const token = location.pathname.split('/share/')[1] || new URLSearchParams(location.search).get('t');
+    if (!token) { document.getElementById('content').innerHTML = '<p style="color:#ef4444">Invalid share link.</p>'; }
+    else {
+      fetch('/api/share/' + token).then(r => r.json()).then(data => {
+        if (!data.document) { document.getElementById('content').innerHTML = '<p style="color:#ef4444">Document not found or link expired.</p>'; return; }
+        const d = data.document;
+        document.title = d.name + ' — MedPass';
+        document.getElementById('content').innerHTML =
+          '<div class="share-header"><div class="share-title">' + esc(d.name) + '</div><div class="share-meta">' + (d.doc_type || 'Document') + ' · Shared via MedPass</div></div>' +
+          '<div class="share-body">' + esc(d.text_content) + '</div>' +
+          '<div class="share-cta"><a href="/signup.html">Study with MedPass AI →</a></div>';
+      }).catch(() => { document.getElementById('content').innerHTML = '<p style="color:#ef4444">Failed to load document.</p>'; });
+    }
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
+</body>
+</html>

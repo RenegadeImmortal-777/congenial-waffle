@@ -1,0 +1,13 @@
+{
+  "name": "medpass",
+  "version": "2.0.0",
+  "private": true,
+  "description": "MedPass — AI-powered medical study platform. Zero npm dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
