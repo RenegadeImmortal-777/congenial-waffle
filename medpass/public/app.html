@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>MedPass</title>
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="stylesheet" href="/app.css"/>
+  <!-- Vendor CDN (loaded async to not block render) -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+</head>
+<body>
+  <!-- Sidebar overlay (mobile) -->
+  <div id="overlay" class="overlay" aria-hidden="true"></div>
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="sidebar" role="navigation" aria-label="Main navigation">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-mark">M</div>
+        <div class="logo-text">MED<span>PASS</span></div>
+      </div>
+      <button id="sidebarCollapseBtn" class="collapse-btn" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item" data-view="dashboard" href="#" title="Dashboard">
+        <span class="nav-icon">⬡</span><span class="nav-label">Dashboard</span>
+      </a>
+      <a class="nav-item" data-view="library" href="#" title="Library">
+        <span class="nav-icon">📚</span><span class="nav-label">Library</span>
+      </a>
+      <a class="nav-item" data-view="study" href="#" title="Study">
+        <span class="nav-icon">🎯</span><span class="nav-label">Study</span>
+      </a>
+      <a class="nav-item" data-view="flashcards" href="#" title="Flashcards">
+        <span class="nav-icon">🃏</span><span class="nav-label">Flashcards</span>
+      </a>
+      <a class="nav-item" data-view="analytics" href="#" title="Analytics">
+        <span class="nav-icon">📊</span><span class="nav-label">Analytics</span>
+      </a>
+      <div class="nav-divider"></div>
+      <a class="nav-item" data-view="search" href="#" title="Search">
+        <span class="nav-icon">🔍</span><span class="nav-label">Search</span>
+      </a>
+      <a class="nav-item" data-view="focus" href="#" title="Focus Room">
+        <span class="nav-icon">⏱</span><span class="nav-label">Focus Room</span>
+      </a>
+      <a class="nav-item" data-view="notes" href="#" title="Notes">
+        <span class="nav-icon">📝</span><span class="nav-label">Notes</span>
+      </a>
+      <a class="nav-item" data-view="bookmarks" href="#" title="Bookmarks">
+        <span class="nav-icon">🔖</span><span class="nav-label">Bookmarks</span>
+      </a>
+      <a class="nav-item" data-view="history" href="#" title="History">
+        <span class="nav-icon">🕐</span><span class="nav-label">History</span>
+      </a>
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Special Features</div>
+      <a class="nav-item" data-view="voice" href="#" title="Voice to Text">
+        <span class="nav-icon">🎙</span><span class="nav-label">Voice to Text</span>
+      </a>
+      <a class="nav-item" data-view="solver" href="#" title="Image Question Solver">
+        <span class="nav-icon">🔬</span><span class="nav-label">Image Solver</span>
+      </a>
+      <a class="nav-item" data-view="planner" href="#" title="Study Planner">
+        <span class="nav-icon">📅</span><span class="nav-label">Study Planner</span>
+      </a>
+      <div class="nav-divider"></div>
+      <div class="nav-section-label">Games</div>
+      <a class="nav-item" data-view="games" href="#" title="Games Hub">
+        <span class="nav-icon">🎮</span><span class="nav-label">Games Hub</span>
+      </a>
+      <a class="nav-item" data-view="chess" href="#" title="Chess">
+        <span class="nav-icon">♟</span><span class="nav-label">Chess</span>
+      </a>
+      <a class="nav-item" data-view="sudoku" href="#" title="Sudoku">
+        <span class="nav-icon">🔢</span><span class="nav-label">Sudoku</span>
+      </a>
+      <div class="nav-divider"></div>
+      <a class="nav-item" data-view="settings" href="#" title="Settings">
+        <span class="nav-icon">⚙</span><span class="nav-label">Settings</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="xp-bar-wrap">
+        <div class="xp-bar-top">
+          <span class="xp-level">Lv <span id="sidebarLevel">1</span></span>
+          <span class="xp-amt"><span id="sidebarXP">0</span> XP</span>
+        </div>
+        <div class="xp-bar-track"><div id="sidebarXPBar" class="xp-bar-fill" style="width:0%"></div></div>
+      </div>
+      <button id="logoutBtn" class="logout-btn" title="Sign out">
+        <span class="nav-icon">↩</span><span class="nav-label">Sign out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div id="mainWrap" class="main-wrap">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button id="hamburger" class="hamburger-btn" aria-label="Toggle sidebar">☰</button>
+        <div id="pageTitle" class="page-title">Dashboard</div>
+      </div>
+      <div class="topbar-right">
+        <div class="streak-chip" id="streakChip" title="Study streak">🔥 <span id="streakCount">0</span></div>
+        <button id="aiToggleBtn" class="ai-toggle-btn" title="AI Tutor (C)">
+          <span>🤖</span> <span class="ai-btn-label">AI Tutor</span>
+        </button>
+        <button id="themeToggle" class="icon-btn" title="Toggle theme">🌙</button>
+      </div>
+    </header>
+
+    <!-- Views -->
+    <main id="viewContainer" class="view-container">
+
+      <!-- DASHBOARD -->
+      <section id="viewDashboard" class="view active">
+        <div class="view-header">
+          <h2 class="view-title">Dashboard</h2>
+          <div class="view-actions">
+            <button class="btn-secondary" onclick="App.nav('study')">Quick Quiz</button>
+            <button class="btn-secondary" onclick="App.nav('focus')">Focus Room</button>
+          </div>
+        </div>
+
+        <div class="stat-grid" id="dashStats">
+          <div class="stat-card">
+            <div class="stat-icon">🎯</div>
+            <div class="stat-body"><div class="stat-val" id="dStatAcc">—</div><div class="stat-lbl">Accuracy</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📝</div>
+            <div class="stat-body"><div class="stat-val" id="dStatRuns">—</div><div class="stat-lbl">Study Sessions</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-body"><div class="stat-val" id="dStatStreak">—</div><div class="stat-lbl">Day Streak</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">🃏</div>
+            <div class="stat-body"><div class="stat-val" id="dStatCards">—</div><div class="stat-lbl">Cards Due</div></div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">⚠ Weak Spots</h3></div>
+            <div class="card-body" id="weakSpotsList"><p class="empty-state">No data yet — complete some quizzes.</p></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">📄 Recent Documents</h3></div>
+            <div class="card-body" id="recentDocsList"><p class="empty-state">No documents yet.</p></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">📋 Recent Sessions</h3></div>
+            <div class="card-body" id="recentRunsList"><p class="empty-state">No sessions yet.</p></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">🏆 Achievements</h3></div>
+            <div class="card-body" id="dashAchievements"><p class="empty-state">Keep studying to unlock!</p></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LIBRARY -->
+      <section id="viewLibrary" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Library</h2>
+          <div class="view-actions">
+            <label class="btn-primary cursor-pointer" for="fileUpload">+ Upload</label>
+            <input type="file" id="fileUpload" accept=".pdf,.txt,.md" multiple style="display:none"/>
+          </div>
+        </div>
+        <div id="uploadProgress" class="upload-progress" style="display:none">
+          <div class="progress-bar"><div id="uploadBar" class="progress-fill"></div></div>
+          <div id="uploadStatus" class="upload-status">Processing…</div>
+        </div>
+        <div id="documentGrid" class="doc-grid"><p class="empty-state" style="grid-column:1/-1">No documents yet. Upload a PDF, text, or markdown file.</p></div>
+      </section>
+
+      <!-- STUDY -->
+      <section id="viewStudy" class="view">
+        <!-- Study setup -->
+        <div id="studySetup" class="study-pane">
+          <div class="view-header">
+            <h2 class="view-title">Study / Quiz</h2>
+          </div>
+          <div class="card" style="max-width:600px">
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Source Document</label>
+                <select id="studyDocSel" class="form-select">
+                  <option value="">— select a document —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Questions</label>
+                <div class="input-row">
+                  <input type="number" id="studyQCount" class="form-input" value="10" min="1" max="50" style="width:80px"/>
+                  <span style="color:var(--text-2);font-size:13px">1 – 50 questions</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mode</label>
+                <div class="pill-group" id="studyModes">
+                  <button class="pill active" data-mode="standard">Standard</button>
+                  <button class="pill" data-mode="timed">Timed (30s/q)</button>
+                </div>
+              </div>
+              <button class="btn-primary w100 mt16" id="startQuizBtn">Generate Quiz →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active quiz -->
+        <div id="studyQuiz" class="study-pane" style="display:none">
+          <div class="quiz-header">
+            <div class="quiz-meta">
+              <span id="qProgress">Q 1/10</span>
+              <div class="quiz-prog-bar"><div id="qProgFill" class="quiz-prog-fill" style="width:0%"></div></div>
+            </div>
+            <div id="qTimer" class="quiz-timer" style="display:none">30s</div>
+            <button class="btn-secondary" id="endQuizBtn">End Quiz</button>
+          </div>
+          <div class="question-card">
+            <div id="qStem" class="q-stem"></div>
+            <div id="qChoices" class="q-choices"></div>
+            <div id="qExplanation" class="q-explanation" style="display:none"></div>
+            <div class="q-actions">
+              <button class="btn-secondary" id="qBookmarkBtn">🔖 Bookmark</button>
+              <button class="btn-primary" id="qNextBtn" style="display:none">Next →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="studyResults" class="study-pane" style="display:none">
+          <div class="view-header">
+            <h2 class="view-title">Results</h2>
+            <div class="view-actions">
+              <button class="btn-secondary" onclick="App.nav('study')">New Quiz</button>
+              <button class="btn-secondary" id="retakeBtn">Retake</button>
+            </div>
+          </div>
+          <div class="result-summary" id="resultSummary"></div>
+          <div class="result-list" id="resultList"></div>
+        </div>
+      </section>
+
+      <!-- FLASHCARDS -->
+      <section id="viewFlashcards" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Flashcards</h2>
+          <div class="view-actions">
+            <button class="btn-secondary" id="fcGenBtn">✨ Generate from Doc</button>
+          </div>
+        </div>
+        <div id="flashcardDeck" class="flashcard-deck"></div>
+        <div id="flashcardAllList" class="fc-list"></div>
+      </section>
+
+      <!-- ANALYTICS -->
+      <section id="viewAnalytics" class="view">
+        <div class="view-header"><h2 class="view-title">Analytics</h2></div>
+        <div class="analytics-grid">
+          <div class="card col-span-2">
+            <div class="card-header"><h3 class="card-title">📈 Score Trend</h3></div>
+            <div class="card-body">
+              <canvas id="scoreTrendChart" height="140"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">🗓 Activity</h3></div>
+            <div class="card-body" id="activityHeatmap"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">⚠ Weak Areas</h3></div>
+            <div class="card-body" id="analyticsWeakSpots"></div>
+          </div>
+          <div class="card col-span-2">
+            <div class="card-header"><h3 class="card-title">🏆 Achievements</h3></div>
+            <div class="card-body" id="achievementsList"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SEARCH -->
+      <section id="viewSearch" class="view">
+        <div class="view-header"><h2 class="view-title">Search</h2></div>
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input id="searchInput" class="search-input" type="search" placeholder="Search documents, flashcards, bookmarks…"/>
+        </div>
+        <div id="searchResults" class="search-results"></div>
+      </section>
+
+      <!-- FOCUS ROOM -->
+      <section id="viewFocus" class="view">
+        <div class="view-header"><h2 class="view-title">Focus Room</h2></div>
+        <div class="focus-center">
+          <div class="pomodoro-card">
+            <div class="pomo-phase" id="pomoPhase">Work</div>
+            <div class="pomo-display" id="pomoDisplay">25:00</div>
+            <div class="pomo-controls">
+              <button class="pomo-btn" id="pomoStartBtn">Start</button>
+              <button class="pomo-btn pomo-btn-sec" id="pomoResetBtn">Reset</button>
+            </div>
+            <div class="pomo-settings">
+              <label>Work <input type="number" id="pomoWork" class="pomo-inp" value="25" min="1" max="90"/>m</label>
+              <label>Break <input type="number" id="pomoBreak" class="pomo-inp" value="5" min="1" max="30"/>m</label>
+            </div>
+            <div class="pomo-subject">
+              <input id="pomoSubject" class="form-input" placeholder="What are you working on?" style="text-align:center"/>
+            </div>
+            <div class="pomo-stats" id="pomoStats"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NOTES -->
+      <section id="viewNotes" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Notes</h2>
+          <div class="view-actions">
+            <button class="btn-primary" id="newNoteBtn">+ New Note</button>
+          </div>
+        </div>
+        <div id="notesGrid" class="notes-grid"></div>
+      </section>
+
+      <!-- BOOKMARKS -->
+      <section id="viewBookmarks" class="view">
+        <div class="view-header"><h2 class="view-title">Bookmarks</h2></div>
+        <div id="bookmarksList" class="bookmarks-list"></div>
+      </section>
+
+      <!-- HISTORY -->
+      <section id="viewHistory" class="view">
+        <div class="view-header"><h2 class="view-title">Study History</h2></div>
+        <div id="historyList" class="history-list"></div>
+      </section>
+
+      <!-- STUDY PLANNER -->
+      <section id="viewPlanner" class="view">
+        <div class="view-header">
+          <h2 class="view-title">📅 Study Planner</h2>
+          <div class="view-actions">
+            <button class="btn-secondary" id="plannerResetBtn" style="display:none">🗑 Clear Plan</button>
+          </div>
+        </div>
+
+        <!-- Setup form (shown when no plan exists) -->
+        <div id="plannerSetup" class="planner-setup">
+          <div class="planner-setup-card">
+            <h3 class="planner-setup-title">Build your study schedule</h3>
+            <p class="planner-setup-sub">Tell us about your exam and the app will generate a personalized day-by-day plan across all your documents.</p>
+
+            <div class="planner-form-grid">
+              <div class="form-group">
+                <label class="form-label">Exam Name</label>
+                <input id="plannerExamName" class="form-input" placeholder="e.g. USMLE Step 1, NCLEX, Board Exam…" maxlength="80"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Exam Date</label>
+                <input id="plannerExamDate" class="form-input" type="date"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Daily Intensity</label>
+                <div class="pill-group" id="plannerIntensity">
+                  <button class="pill" data-intensity="light">☀ Light (1 task)</button>
+                  <button class="pill active" data-intensity="moderate">⚡ Moderate (2 tasks)</button>
+                  <button class="pill" data-intensity="intense">🔥 Intense (3 tasks)</button>
+                </div>
+              </div>
+              <div class="form-group planner-full-col">
+                <label class="form-label">Documents to include</label>
+                <div id="plannerDocList" class="planner-doc-list">
+                  <p class="empty-state">Loading your documents…</p>
+                </div>
+              </div>
+            </div>
+
+            <button id="plannerGenerateBtn" class="btn-primary" style="margin-top:8px;min-width:200px">
+              📅 Generate Plan →
+            </button>
+          </div>
+        </div>
+
+        <!-- Plan view (shown once plan is generated) -->
+        <div id="plannerView" style="display:none">
+          <!-- Summary bar -->
+          <div class="planner-summary" id="plannerSummary"></div>
+          <!-- Week-by-week calendar -->
+          <div id="plannerCalendar" class="planner-calendar"></div>
+        </div>
+      </section>
+
+      <!-- IMAGE QUESTION SOLVER -->
+      <section id="viewSolver" class="view">
+        <div class="view-header">
+          <h2 class="view-title">🔬 Image Question Solver</h2>
+        </div>
+        <div class="solver-layout">
+
+          <!-- Left: upload + prompt + result -->
+          <div class="solver-main">
+            <!-- Drop zone -->
+            <label id="solverDropZone" class="solver-drop" for="solverFileInput">
+              <div class="solver-drop-icon">📷</div>
+              <div class="solver-drop-text">Drop an image here, or click to choose</div>
+              <div class="solver-drop-sub">Supports PNG, JPG, WEBP · max 5 MB · camera works on mobile</div>
+              <input type="file" id="solverFileInput" accept="image/*" capture="environment" style="display:none"/>
+            </label>
+
+            <!-- Preview (hidden until image loaded) -->
+            <div id="solverPreviewWrap" class="solver-preview-wrap" style="display:none">
+              <img id="solverPreview" class="solver-preview-img" alt="Question image"/>
+              <button id="solverClearImg" class="solver-clear-img" title="Remove image">✕ Remove</button>
+            </div>
+
+            <!-- Prompt -->
+            <div class="form-group" style="margin-top:16px">
+              <label class="form-label">Instruction (optional)</label>
+              <textarea id="solverPrompt" class="form-input" rows="2"
+                placeholder="e.g. Identify the correct answer and explain the reasoning step by step."
+                style="resize:vertical"></textarea>
+            </div>
+
+            <button id="solverAnalyzeBtn" class="btn-primary w100" style="margin-top:12px" disabled>
+              🔬 Analyze Question
+            </button>
+
+            <!-- Result -->
+            <div id="solverResultWrap" class="solver-result-wrap" style="display:none">
+              <div class="solver-result-header">
+                <span class="solver-result-label">AI Analysis</span>
+                <div class="solver-result-actions">
+                  <button class="btn-secondary" id="solverCopyBtn">📋 Copy</button>
+                  <button class="btn-secondary" id="solverSaveNoteBtn">📝 Save as Note</button>
+                  <button class="btn-secondary" id="solverFollowUpBtn">💬 Follow-up</button>
+                </div>
+              </div>
+              <div id="solverLoading" class="solver-loading" style="display:none">
+                <div class="solver-spinner"></div>
+                <span>Analyzing image…</span>
+              </div>
+              <div id="solverResult" class="solver-result-body markdown-body"></div>
+            </div>
+          </div>
+
+          <!-- Right: tips -->
+          <div class="voice-tips-card">
+            <div class="voice-tips-title">How it works</div>
+            <ul class="voice-tips-list">
+              <li>Upload a photo of any exam question, diagram, or lab value</li>
+              <li>The AI reads the image and works through the clinical reasoning</li>
+              <li>Works best with clear, well-lit photos</li>
+              <li>Crop to the question for better accuracy</li>
+              <li>Add a custom instruction if you want a specific format</li>
+              <li>Save the answer as a Note or send a follow-up to the AI Tutor</li>
+            </ul>
+
+            <div class="voice-tips-title" style="margin-top:20px">Example prompts</div>
+            <div class="solver-example-prompts">
+              <button class="solver-example-btn" data-prompt="Identify the correct answer choice and explain the clinical reasoning.">Board-style MCQ</button>
+              <button class="solver-example-btn" data-prompt="Describe what this image shows and its clinical significance.">Describe image</button>
+              <button class="solver-example-btn" data-prompt="Interpret these lab values and list possible diagnoses.">Lab values</button>
+              <button class="solver-example-btn" data-prompt="Identify all structures labeled in this diagram.">Anatomy diagram</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- VOICE TO TEXT -->
+      <section id="viewVoice" class="view">
+        <div class="view-header">
+          <h2 class="view-title">🎙 Voice to Text</h2>
+        </div>
+        <div class="voice-layout">
+          <div class="voice-card">
+            <div class="voice-lang-row">
+              <label class="form-label" for="voiceLang">Language</label>
+              <select id="voiceLang" class="form-select" style="width:auto;min-width:180px">
+                <option value="en-US">English (US)</option>
+                <option value="en-GB">English (UK)</option>
+                <option value="es-ES">Spanish</option>
+                <option value="fr-FR">French</option>
+                <option value="de-DE">German</option>
+                <option value="zh-CN">Chinese (Simplified)</option>
+                <option value="ar-SA">Arabic</option>
+                <option value="hi-IN">Hindi</option>
+                <option value="pt-BR">Portuguese (BR)</option>
+                <option value="ja-JP">Japanese</option>
+              </select>
+            </div>
+
+            <div class="voice-mic-wrap">
+              <button id="voiceMicBtn" class="voice-mic-btn" aria-label="Start recording" title="Click to start recording">
+                <span class="voice-mic-icon">🎙</span>
+              </button>
+              <div id="voiceStatus" class="voice-status">Click to start recording</div>
+              <div id="voiceWave" class="voice-wave" style="display:none">
+                <span></span><span></span><span></span><span></span><span></span>
+              </div>
+            </div>
+
+            <div id="voiceTranscriptBox" class="voice-transcript-box">
+              <div id="voiceTranscript" class="voice-transcript">
+                <span id="voiceFinal"></span><span id="voiceInterim" class="voice-interim"></span>
+              </div>
+              <div id="voiceEmpty" class="voice-empty-hint">Your spoken words will appear here…</div>
+            </div>
+
+            <div class="voice-actions">
+              <button class="btn-secondary" id="voiceCopyBtn" title="Copy transcript to clipboard">📋 Copy</button>
+              <button class="btn-secondary" id="voiceSaveNoteBtn" title="Save as a new note">📝 Save as Note</button>
+              <button class="btn-secondary" id="voiceSendAiBtn" title="Send to AI Tutor">🤖 Ask AI</button>
+              <button class="btn-secondary" id="voiceClearBtn" style="margin-left:auto;color:#ef4444">🗑 Clear</button>
+            </div>
+
+            <div class="voice-support-note" id="voiceSupportNote" style="display:none">
+              ⚠ Your browser does not support the Web Speech API. Try Chrome or Edge for this feature.
+            </div>
+          </div>
+
+          <!-- Audio File Transcription Card -->
+          <div class="voice-card" id="audioTranscribeCard">
+            <div class="card-section-title">📁 Transcribe an Audio File</div>
+            <p style="font-size:13px;color:var(--text-2);margin-bottom:16px">Upload a lecture recording, podcast, or audio note — Groq Whisper will convert it to text.</p>
+
+            <div id="audioDropZone" class="audio-drop-zone">
+              <input type="file" id="audioFileInput" accept="audio/*,video/mp4,video/webm" style="display:none"/>
+              <div class="audio-drop-icon">🎵</div>
+              <div class="audio-drop-label">Drop an audio file here or <span class="audio-drop-link" id="audioDropBrowse">browse</span></div>
+              <div class="audio-drop-hint">MP3 · MP4 · M4A · WAV · WebM · OGG &nbsp;•&nbsp; Max 25 MB</div>
+            </div>
+
+            <div id="audioFileChosen" class="audio-file-chosen" style="display:none">
+              <span id="audioFileName" class="audio-file-name"></span>
+              <span id="audioFileSize" class="audio-file-size"></span>
+              <button class="audio-remove-btn" id="audioRemoveBtn" title="Remove file">✕</button>
+            </div>
+
+            <button class="btn btn-primary" id="audioTranscribeBtn" style="margin-top:14px;width:100%" disabled>
+              ✦ Transcribe
+            </button>
+
+            <div id="audioProgress" class="audio-progress" style="display:none">
+              <div class="audio-spinner"></div>
+              <span id="audioProgressMsg">Transcribing… this may take a moment</span>
+            </div>
+
+            <div id="audioTranscriptSection" style="display:none">
+              <div class="audio-transcript-label">Transcript</div>
+              <div id="audioTranscriptBox" class="voice-transcript-box" style="min-height:120px;margin-bottom:12px">
+                <div id="audioTranscriptText" class="voice-transcript" style="white-space:pre-wrap"></div>
+              </div>
+              <div class="voice-actions">
+                <button class="btn-secondary" id="audioCopyBtn">📋 Copy</button>
+                <button class="btn-secondary" id="audioSaveNoteBtn">📝 Save as Note</button>
+                <button class="btn-secondary" id="audioSendAiBtn">🤖 Ask AI</button>
+                <button class="btn-secondary" id="audioSaveDocBtn">📚 Save to Library</button>
+                <button class="btn-secondary" id="audioClearTranscriptBtn" style="margin-left:auto;color:#ef4444">🗑 Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="voice-tips-card">
+            <div class="voice-tips-title">Tips for best results</div>
+            <ul class="voice-tips-list">
+              <li>Speak clearly at a normal pace</li>
+              <li>Minimize background noise</li>
+              <li>Allow microphone access when prompted</li>
+              <li>Click the mic again to pause recording</li>
+              <li>Use the language selector to match your speech</li>
+              <li>Copy the text and upload it as a document to generate quizzes or flashcards</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="viewSettings" class="view">
+        <div class="view-header"><h2 class="view-title">Settings</h2></div>
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Appearance</h3></div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">Theme</label>
+                <div class="pill-group">
+                  <button class="pill" onclick="App.setTheme('dark')">Dark</button>
+                  <button class="pill" onclick="App.setTheme('light')">Light</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Accent Color</label>
+                <div class="accent-swatches" id="accentSwatches">
+                  <button class="swatch" data-color="#6366f1" style="background:#6366f1" title="Indigo"></button>
+                  <button class="swatch" data-color="#8b5cf6" style="background:#8b5cf6" title="Violet"></button>
+                  <button class="swatch" data-color="#06b6d4" style="background:#06b6d4" title="Cyan"></button>
+                  <button class="swatch" data-color="#10b981" style="background:#10b981" title="Emerald"></button>
+                  <button class="swatch" data-color="#f59e0b" style="background:#f59e0b" title="Amber"></button>
+                  <button class="swatch" data-color="#ef4444" style="background:#ef4444" title="Red"></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Account</h3></div>
+            <div class="card-body">
+              <p class="settings-email" id="settingsEmail">Loading…</p>
+              <button class="btn-danger mt16" id="settingsLogout">Sign Out</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Study Goals</h3></div>
+            <div class="card-body">
+              <div id="goalsList"></div>
+              <button class="btn-secondary mt16" id="addGoalBtn">+ Add Goal</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- GAMES HUB -->
+      <section id="viewGames" class="view">
+        <div class="view-header">
+          <h2 class="view-title">Games</h2>
+        </div>
+        <p style="color:var(--text-2);margin-bottom:28px;font-size:14px">Take a brain break — these games sharpen focus and memory 🧠</p>
+        <div class="games-hub-grid">
+          <button class="game-hub-card" onclick="App.nav('chess')">
+            <div class="game-hub-icon">♟</div>
+            <div class="game-hub-name">Chess</div>
+            <div class="game-hub-desc">Strategic board game — play vs AI or challenge a friend with a room code</div>
+            <div class="game-hub-tags"><span class="gtag">vs AI</span><span class="gtag">Multiplayer</span><span class="gtag">Strategic</span></div>
+          </button>
+          <button class="game-hub-card" onclick="App.nav('sudoku')">
+            <div class="game-hub-icon">🔢</div>
+            <div class="game-hub-name">Sudoku</div>
+            <div class="game-hub-desc">Classic logic puzzle — solve solo or race a friend on the same board</div>
+            <div class="game-hub-tags"><span class="gtag">Solo</span><span class="gtag">Race Mode</span><span class="gtag">Logic</span></div>
+          </button>
+        </div>
+      </section>
+
+      <!-- CHESS -->
+      <section id="viewChess" class="view">
+        <div id="chessSetup">
+          <div class="view-header">
+            <h2 class="view-title">Chess</h2>
+            <button class="btn-secondary" onclick="App.nav('games')">← Games</button>
+          </div>
+          <div class="game-mode-grid">
+            <div class="game-mode-card">
+              <div class="game-mode-icon">🤖</div>
+              <h3 class="game-mode-title">vs AI</h3>
+              <p class="game-mode-desc">Play against the computer</p>
+              <div class="form-group mt16">
+                <label class="form-label">Difficulty</label>
+                <div class="pill-group" id="chessDiffPills">
+                  <button class="pill active" data-diff="2">Easy</button>
+                  <button class="pill" data-diff="3">Medium</button>
+                  <button class="pill" data-diff="4">Hard</button>
+                </div>
+              </div>
+              <div class="form-group mt16">
+                <label class="form-label">Play as</label>
+                <div class="pill-group" id="chessColorPills">
+                  <button class="pill active" data-color="w">⬜ White</button>
+                  <button class="pill" data-color="b">⬛ Black</button>
+                  <button class="pill" data-color="r">🎲 Random</button>
+                </div>
+              </div>
+              <button class="btn-primary mt20 w100" id="chessStartAiBtn">Start vs AI</button>
+            </div>
+            <div class="game-mode-card">
+              <div class="game-mode-icon">👥</div>
+              <h3 class="game-mode-title">vs Friend</h3>
+              <p class="game-mode-desc">Share a 6-letter room code to play together</p>
+              <button class="btn-primary mt20 w100" id="chessCreateRoomBtn">Create Room</button>
+              <div class="game-join-row mt12">
+                <input id="chessJoinCode" class="form-input" placeholder="Room code…" maxlength="6" style="text-transform:uppercase;letter-spacing:.15em;font-weight:700"/>
+                <button class="btn-secondary" id="chessJoinRoomBtn">Join</button>
+              </div>
+              <div id="chessRoomWait" class="room-wait-box" style="display:none">
+                <div class="room-code-display" id="chessRoomCodeDisplay"></div>
+                <p class="room-wait-msg">Waiting for opponent…</p>
+                <div class="room-wait-spinner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="chessGame" style="display:none">
+          <div class="game-header">
+            <button class="btn-secondary" id="chessResignBtn">← Resign</button>
+            <div class="game-status" id="chessStatus">Your turn</div>
+            <div id="chessOnlineCode" class="room-code-chip" style="display:none"></div>
+          </div>
+          <div class="chess-layout">
+            <div class="chess-board-wrap">
+              <div id="chessBoard" class="chess-board"></div>
+            </div>
+            <div class="chess-aside">
+              <div id="chessCapturedTop" class="chess-captured"></div>
+              <div class="chess-history-wrap" id="chessHistory"></div>
+              <div id="chessCapturedBot" class="chess-captured"></div>
+              <div id="chessGameResult" class="chess-result" style="display:none"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SUDOKU -->
+      <section id="viewSudoku" class="view">
+        <div id="sudokuSetup">
+          <div class="view-header">
+            <h2 class="view-title">Sudoku</h2>
+            <button class="btn-secondary" onclick="App.nav('games')">← Games</button>
+          </div>
+          <div class="game-mode-grid">
+            <div class="game-mode-card">
+              <div class="game-mode-icon">🧩</div>
+              <h3 class="game-mode-title">Solo</h3>
+              <p class="game-mode-desc">Solve at your own pace with hints and notes</p>
+              <div class="form-group mt16">
+                <label class="form-label">Difficulty</label>
+                <div class="pill-group" id="sudokuDiffPills">
+                  <button class="pill active" data-sdiff="easy">Easy</button>
+                  <button class="pill" data-sdiff="medium">Medium</button>
+                  <button class="pill" data-sdiff="hard">Hard</button>
+                </div>
+              </div>
+              <button class="btn-primary mt20 w100" id="sudokuStartSoloBtn">Start Puzzle</button>
+            </div>
+            <div class="game-mode-card">
+              <div class="game-mode-icon">⚡</div>
+              <h3 class="game-mode-title">vs Friend</h3>
+              <p class="game-mode-desc">Race a friend — same puzzle, first to finish wins!</p>
+              <button class="btn-primary mt20 w100" id="sudokuCreateRoomBtn">Create Room</button>
+              <div class="game-join-row mt12">
+                <input id="sudokuJoinCode" class="form-input" placeholder="Room code…" maxlength="6" style="text-transform:uppercase;letter-spacing:.15em;font-weight:700"/>
+                <button class="btn-secondary" id="sudokuJoinRoomBtn">Join</button>
+              </div>
+              <div id="sudokuRoomWait" class="room-wait-box" style="display:none">
+                <div class="room-code-display" id="sudokuRoomCodeDisplay"></div>
+                <p class="room-wait-msg">Waiting for opponent…</p>
+                <div class="room-wait-spinner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="sudokuGame" style="display:none">
+          <div class="game-header">
+            <button class="btn-secondary" id="sudokuBackBtn">← New Game</button>
+            <div class="game-status" id="sudokuStatus">Solving…</div>
+            <div class="sudoku-timer" id="sudokuTimer">0:00</div>
+          </div>
+          <div class="sudoku-layout">
+            <div id="sudokuBoard" class="sudoku-board"></div>
+            <div class="sudoku-panel">
+              <div id="sudokuRoomInfo" class="sudoku-room-info" style="display:none"></div>
+              <div class="sudoku-numpad" id="sudokuNumpad"></div>
+              <div class="sudoku-ctrl-grid">
+                <button class="btn-secondary" id="sudokuNotesToggle">✏ Notes: Off</button>
+                <button class="btn-secondary" id="sudokuEraseBtn">⌫ Erase</button>
+                <button class="btn-secondary" id="sudokuHintBtn">💡 Hint (3)</button>
+                <button class="btn-secondary" id="sudokuCheckBtn">✓ Check</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- AI COMPANION PANEL -->
+  <div id="aiPanel" class="ai-panel" role="dialog" aria-label="AI Tutor">
+    <div class="ai-panel-header">
+      <div class="ai-panel-title">🤖 AI Tutor</div>
+      <div class="ai-panel-actions">
+        <button class="icon-btn" id="clearChatBtn" title="Clear chat">🗑</button>
+        <button class="icon-btn" id="closePanelBtn" title="Close">✕</button>
+      </div>
+    </div>
+    <div id="chatMessages" class="chat-messages" aria-live="polite"></div>
+    <div class="chat-composer">
+      <div class="composer-attach" id="composerAttachments"></div>
+      <div class="composer-row">
+        <label for="imgAttach" class="icon-btn" title="Attach image">📎</label>
+        <input type="file" id="imgAttach" accept="image/*,.pdf" style="display:none" multiple/>
+        <textarea id="chatInput" class="chat-input" placeholder="Ask about any medical topic… (Shift+Enter for newline)" rows="1"></textarea>
+        <button id="sendBtn" class="send-btn" aria-label="Send">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <div id="modalOverlay" class="modal-overlay" style="display:none">
+    <div id="modalBox" class="modal-box">
+      <div class="modal-header">
+        <div id="modalTitle" class="modal-title"></div>
+        <button id="modalClose" class="icon-btn">✕</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Document Summarizer Panel -->
+  <div id="summarizerOverlay" class="summarizer-overlay" style="display:none" aria-modal="true">
+    <div class="summarizer-panel">
+      <div class="summarizer-header">
+        <div class="summarizer-header-left">
+          <span class="summarizer-icon">📋</span>
+          <div>
+            <div class="summarizer-title" id="summarizerTitle">Document Summary</div>
+            <div class="summarizer-subtitle" id="summarizerSubtitle"></div>
+          </div>
+        </div>
+        <div class="summarizer-header-right">
+          <button class="btn-secondary" id="summarizerSaveBtn" style="display:none">💾 Save as Note</button>
+          <button class="icon-btn" id="summarizerClose">✕</button>
+        </div>
+      </div>
+      <div class="summarizer-body" id="summarizerBody">
+        <div class="summarizer-loading" id="summarizerLoading">
+          <div class="summarizer-spinner"></div>
+          <p>Analyzing document…</p>
+        </div>
+        <div id="summarizerContent" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toastContainer" class="toast-container" aria-live="assertive"></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
